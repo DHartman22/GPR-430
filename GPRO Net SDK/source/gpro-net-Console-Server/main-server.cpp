@@ -37,6 +37,7 @@
 #include "RakNet/RakNetSocket.h"
 #include "RakNet/BitStream.h"
 #include "RakNet/RakNetTypes.h"  // MessageID
+#include "RakNet/GetTime.h"
 
 using namespace RakNet;
 #define MAX_CLIENTS 10
@@ -99,27 +100,35 @@ int main(int const argc, char const* const argv[])
 				printf("The server is full.\n");
 				break;
 			case ID_DISCONNECTION_NOTIFICATION:
-				if (isServer) {
 					printf("A client has disconnected.\n");
-				}
-				else {
-					printf("We have been disconnected.\n");
-				}
 				break;
 			case ID_CONNECTION_LOST:
-				if (isServer) {
-					printf("A client lost the connection.\n");
-				}
-				else {
-					printf("Connection lost.\n");
-				}
+					printf("A client lost connection.\n");
 				break;
 			case ID_GAME_MESSAGE_1:
 			{
 				RakNet::RakString rs;
 				RakNet::BitStream bsIn(packet->data, packet->length, false);
+				
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
 				bsIn.Read(rs);
+				//printf("Message from " + )
+				printf("%s\n", rs.C_String());
+
+				RakNet::BitStream bsOut;
+				bsOut.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
+				bsOut.Write("Your message has been received.\n");
+				peer->Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED, 1, packet->systemAddress, false);
+			}
+			break;
+			case ID_TIMESTAMP:
+			{
+				RakNet::RakString rs;
+				RakNet::BitStream bsIn(packet->data, packet->length, false);
+
+				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
+				bsIn.Read(rs);
+				//printf("Message from " + )
 				printf("%s\n", rs.C_String());
 			}
 			break;

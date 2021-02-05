@@ -32,6 +32,7 @@
 #include <string.h>
 
 
+
 //using namespace RakNet;
 
 #include "Raknet/MessageIdentifiers.h"
@@ -40,6 +41,9 @@
 #include "RakNet/SocketIncludes.h"
 #include "RakNet/BitStream.h"
 #include "RakNet/RakNetTypes.h"  // MessageID
+#include "RakNet/GetTime.h"
+#include <iostream>
+#include <string>
 
 #define MAX_CLIENTS 10
 #define SERVER_PORT 4024
@@ -64,14 +68,14 @@ int main(int const argc, char const* const argv[])
 
 
 	// TODO - Add code body here
-
+	
 	
 	
 	printf("Starting the client.\n");
-	peer->Connect("172.16.2.186", SERVER_PORT, 0, 0);
+	peer->Connect("172.16.2.194", SERVER_PORT, 0, 0);
 
 	
-
+	
 	while (1)
 	{
 		for (packet = peer->Receive(); packet; peer->DeallocatePacket(packet), packet = peer->Receive())
@@ -93,10 +97,22 @@ int main(int const argc, char const* const argv[])
 
 				// Use a BitStream to write a custom user message
 				// Bitstreams are easier to use than sending casted structures, and handle endian swapping automatically
-				RakNet::BitStream bsOut;
-				bsOut.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
-				bsOut.Write("Hello world");
-				peer->Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
+				RakNet::BitStream bsOutTime;
+				RakNet::BitStream bsOutMessage;
+
+				//RakNet::MessageID useTimeStamp;
+				RakNet::Time timeStamp;
+				timeStamp = RakNet::GetTime();
+				//unsigned char useTimeStamp;
+				bsOutTime.Write((RakNet::MessageID)ID_TIMESTAMP);
+				bsOutTime.Write(timeStamp);
+				//bsOut.Write(timeStamp);
+				
+				bsOutMessage.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
+				bsOutMessage.Write("Hello world??");
+				peer->Send(&bsOutTime, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
+
+				peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
 			}
 				break;
 			case ID_NEW_INCOMING_CONNECTION:
@@ -113,12 +129,13 @@ int main(int const argc, char const* const argv[])
 				break;
 			case ID_GAME_MESSAGE_1:
 			{
-				RakNet::RakString rs;
-				RakNet::BitStream bsIn(packet->data, packet->length, false);
-				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
-				bsIn.Read(rs);
-				printf("%s\n", rs.C_String());
+					RakNet::RakString rs;
+					RakNet::BitStream bsIn(packet->data, packet->length, false);
+					bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
+					bsIn.Read(rs);
+					printf("%s\n", rs.C_String());
 			}
+				break;
 			case ID_CONNECTION_ATTEMPT_FAILED:
 					printf("Connection attempt failed.\n");
 				break;
@@ -126,7 +143,22 @@ int main(int const argc, char const* const argv[])
 				printf("Message with identifier %i has arrived.\n", packet->data[0]);
 				break;
 			}
+
+			//this pauses the program rather than allowing it to refresh automatically
+		//so its a temporary solution, idk how else to do it for now
+			std::cout << "Press Enter to refresh, or type a message to send to the server.\n";
+			std::string input;
+			std::cin >> input;
+			if (input != "")
+			{
+				RakNet::BitStream bsOutMessage;
+				bsOutMessage.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
+				bsOutMessage.Write(RakNet::GetTime());
+				peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
+
+			}
 		}
+		
 	}
 
 
