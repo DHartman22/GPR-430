@@ -40,6 +40,7 @@
 #include "RakNet/GetTime.h"
 #include <string>
 #include <iostream>
+#include <fstream>
 
 using namespace RakNet;
 #define MAX_CLIENTS 10
@@ -51,6 +52,19 @@ enum GameMessages
 	ID_GAME_MESSAGE_1 = ID_USER_PACKET_ENUM + 1
 };
 
+void logEvent(int timestamp, std::string message)
+{
+	std::ofstream file("uniquename.txt");
+	file.open("uniquename.txt", std::ios::app);
+	//file.open("log.txt");
+
+	if (file.is_open())
+	{
+		file << "Time: " + std::to_string(timestamp) + " User: N/A Message: " + message << std::endl;
+		//printf(GetCurrentDirectory());
+	}
+	file.close();
+}
 
 int main(int const argc, char const* const argv[])
 {
@@ -118,7 +132,20 @@ int main(int const argc, char const* const argv[])
 				//const char * a = packet->systemAddress.ToString(false);
 				
 				//printf("Message from " + packet->systemAddress);
+
+
+				RakNet::Time time;
+				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
+				bsIn.Read(time);
+				//printf("Message from " + )
+				int a = (int)time;
+				a /= 1000;
+				time /= 1000;
+				printf("%" PRINTF_64_BIT_MODIFIER "u ", time);
 				printf("%s\n", rs.C_String());
+				printf("\n");
+
+				logEvent(a, rs.C_String());
 
 				RakNet::BitStream bsOut;
 				bsOut.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);

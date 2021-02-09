@@ -68,15 +68,15 @@ void input(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 		//packet = peer->Receive();
 		//RakNet::StringCompressor sc;
 		RakNet::BitStream bsOutMessage;
-		RakNet::BitStream bsOutTimestamp;
+		//RakNet::BitStream bsOutTimestamp;
 		RakNet::Time timestamp = RakNet::GetTime();
 
 
 		//sc.EncodeString
-		bsOutMessage.Write((RakNet::MessageID)ID_TIMESTAMP);
-		bsOutMessage.Write(timestamp);
 		bsOutMessage.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
 		bsOutMessage.Write(input);
+		bsOutMessage.Write((RakNet::MessageID)ID_TIMESTAMP);
+		bsOutMessage.Write(timestamp);
 
 		peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress(SERVER_IP, 4024), false);
 	}
@@ -132,12 +132,12 @@ int main(int const argc, char const* const argv[])
 				RakNet::Time timeStamp;
 				timeStamp = RakNet::GetTime();
 				//unsigned char useTimeStamp;
+				bsOutMessage.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
+				bsOutMessage.Write("New user connected");
+				
 				bsOutTime.Write((RakNet::MessageID)ID_TIMESTAMP);
 				bsOutTime.Write(timeStamp);
-				//bsOut.Write(timeStamp);
 				
-				bsOutMessage.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
-				bsOutMessage.Write("Hello world??");
 				peer->Send(&bsOutTime, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
 
 				peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
