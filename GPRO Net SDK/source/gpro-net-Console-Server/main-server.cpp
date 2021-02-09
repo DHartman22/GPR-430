@@ -38,10 +38,12 @@
 #include "RakNet/BitStream.h"
 #include "RakNet/RakNetTypes.h"  // MessageID
 #include "RakNet/GetTime.h"
+#include <string>
 
 using namespace RakNet;
 #define MAX_CLIENTS 10
 #define SERVER_PORT 4024
+//Change to 7777?
 
 enum GameMessages
 {
@@ -112,7 +114,9 @@ int main(int const argc, char const* const argv[])
 				
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
 				bsIn.Read(rs);
-				//printf("Message from " + )
+				const char * a = packet->systemAddress.ToString(false);
+				
+				printf("Message from " + packet->systemAddress.ToInteger(packet->systemAddress));
 				printf("%s\n", rs.C_String());
 
 				RakNet::BitStream bsOut;
@@ -123,13 +127,22 @@ int main(int const argc, char const* const argv[])
 			break;
 			case ID_TIMESTAMP:
 			{
-				RakNet::RakString rs;
+				RakNet::Time time;
 				RakNet::BitStream bsIn(packet->data, packet->length, false);
-
+				
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
-				bsIn.Read(rs);
+
+				bsIn.Read(time);
+				
+				//bsIn.Read()
+				//RakNet::RakString rs = time;
+
+				//bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
+				//bsIn.Read(rs);
 				//printf("Message from " + )
-				printf("%s\n", rs.C_String());
+				int a = (int)time;
+				//printf();
+				printf("%d\n", a);
 			}
 			break;
 			default:
