@@ -54,6 +54,32 @@ enum GameMessages
 	ID_GAME_MESSAGE_1 = ID_USER_PACKET_ENUM + 1
 };
 
+void input(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
+{
+	std::cout << "Press Enter to refresh, or type a message to send to the server.\n";
+	char input[500];
+	//RakNet::RakString input;
+	std::cin.getline(input, 500);
+	if (input[0] != '/')
+	{
+		//packet = peer->Receive();
+		//peer->DeallocatePacket(packet);
+		//packet = peer->Receive();
+		//RakNet::StringCompressor sc;
+		RakNet::BitStream bsOutMessage;
+		RakNet::BitStream bsOutTimestamp;
+		RakNet::Time timestamp = RakNet::GetTime();
+
+
+		//sc.EncodeString
+		bsOutMessage.Write((RakNet::MessageID)ID_TIMESTAMP);
+		bsOutMessage.Write(timestamp);
+		bsOutMessage.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
+		bsOutMessage.Write(input);
+
+		peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress("172.16.2.65", 4024), false);
+	}
+}
 
 int main(int const argc, char const* const argv[])
 {
@@ -73,7 +99,7 @@ int main(int const argc, char const* const argv[])
 	
 	
 	printf("Starting the client.\n");
-	peer->Connect("172.16.2.59", SERVER_PORT, 0, 0);
+	peer->Connect("172.16.2.65", SERVER_PORT, 0, 0);
 
 	
 	
@@ -145,30 +171,35 @@ int main(int const argc, char const* const argv[])
 				break;
 			}
 
-			//this pauses the program rather than allowing it to refresh automatically
-		//so its a temporary solution, idk how else to do it for now
-			std::cout << "Press Enter to refresh, or type a message to send to the server.\n";
-			char input[500];
-			//RakNet::RakString input;
-			std::cin.getline(input, 500);
-			if (input != "")
-			{
-				RakNet::StringCompressor sc;
-				RakNet::BitStream bsOutMessage;
-				RakNet::BitStream bsOutTimestamp;
-				RakNet::Time timestamp = RakNet::GetTime();
-
-
-				//sc.EncodeString
-				bsOutMessage.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
-				bsOutMessage.Write(input);
-				bsOutMessage.Write((RakNet::MessageID)ID_TIMESTAMP);
-				bsOutMessage.Write(timestamp);
-
-				peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
-			}
+			
 		}
-		
+
+		input(peer, packet);
+		////this pauses the program rather than allowing it to refresh automatically
+		////so its a temporary solution, idk how else to do it for now
+		//std::cout << "Press Enter to refresh, or type a message to send to the server.\n";
+		//char input[500];
+		////RakNet::RakString input;
+		//std::cin.getline(input, 500);
+		//if (input[0] != '/')
+		//{
+		//	packet = peer->Receive();
+		//	peer->DeallocatePacket(packet);
+		//	//packet = peer->Receive();
+		//	//RakNet::StringCompressor sc;
+		//	RakNet::BitStream bsOutMessage;
+		//	RakNet::BitStream bsOutTimestamp;
+		//	RakNet::Time timestamp = RakNet::GetTime();
+
+
+		//	//sc.EncodeString
+		//	bsOutMessage.Write((RakNet::MessageID)ID_TIMESTAMP);
+		//	bsOutMessage.Write(timestamp);
+		//	bsOutMessage.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
+		//	bsOutMessage.Write(input);
+
+		//	peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
+		//}
 	}
 
 

@@ -114,9 +114,9 @@ int main(int const argc, char const* const argv[])
 				
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
 				bsIn.Read(rs);
-				const char * a = packet->systemAddress.ToString(false);
+				//const char * a = packet->systemAddress.ToString(false);
 				
-				printf("Message from " + packet->systemAddress.ToInteger(packet->systemAddress));
+				//printf("Message from " + packet->systemAddress.ToInteger(packet->systemAddress));
 				printf("%s\n", rs.C_String());
 
 				RakNet::BitStream bsOut;
@@ -141,6 +141,9 @@ int main(int const argc, char const* const argv[])
 				//bsIn.Read(rs);
 				//printf("Message from " + )
 				int a = (int)time;
+				time /= 1000;
+				printf("%" PRINTF_64_BIT_MODIFIER "u ", time);
+				printf("\n");
 				//printf();
 				printf("%d\n", a);
 			}
