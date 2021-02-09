@@ -48,6 +48,7 @@
 
 #define MAX_CLIENTS 10
 #define SERVER_PORT 4024
+#define SERVER_IP "172.16.2.65"
 
 enum GameMessages
 {
@@ -56,7 +57,7 @@ enum GameMessages
 
 void input(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 {
-	std::cout << "Press Enter to refresh, or type a message to send to the server.\n";
+	std::cout << "Type a message... or send a [/] without brackets for more options.\n";
 	char input[500];
 	//RakNet::RakString input;
 	std::cin.getline(input, 500);
@@ -77,7 +78,7 @@ void input(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 		bsOutMessage.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
 		bsOutMessage.Write(input);
 
-		peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress("172.16.2.65", 4024), false);
+		peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress(SERVER_IP, 4024), false);
 	}
 }
 
@@ -99,7 +100,7 @@ int main(int const argc, char const* const argv[])
 	
 	
 	printf("Starting the client.\n");
-	peer->Connect("172.16.2.65", SERVER_PORT, 0, 0);
+	peer->Connect(SERVER_IP, SERVER_PORT, 0, 0);
 
 	
 	

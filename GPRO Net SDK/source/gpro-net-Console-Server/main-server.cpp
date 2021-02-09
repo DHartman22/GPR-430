@@ -39,6 +39,7 @@
 #include "RakNet/RakNetTypes.h"  // MessageID
 #include "RakNet/GetTime.h"
 #include <string>
+#include <iostream>
 
 using namespace RakNet;
 #define MAX_CLIENTS 10
@@ -116,7 +117,7 @@ int main(int const argc, char const* const argv[])
 				bsIn.Read(rs);
 				//const char * a = packet->systemAddress.ToString(false);
 				
-				//printf("Message from " + packet->systemAddress.ToInteger(packet->systemAddress));
+				//printf("Message from " + packet->systemAddress);
 				printf("%s\n", rs.C_String());
 
 				RakNet::BitStream bsOut;
@@ -145,7 +146,7 @@ int main(int const argc, char const* const argv[])
 				printf("%" PRINTF_64_BIT_MODIFIER "u ", time);
 				printf("\n");
 				//printf();
-				printf("%d\n", a);
+				//printf("%d\n", a);
 			}
 			break;
 			default:
