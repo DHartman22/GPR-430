@@ -55,6 +55,11 @@ enum GameMessages
 	ID_GAME_MESSAGE_1 = ID_USER_PACKET_ENUM + 1
 };
 
+enum UsernameMessage
+{
+	ID_NEW_USER_JOINED = ID_GAME_MESSAGE_1 + 1
+};
+
 void input(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 {
 	std::cout << "Type a message... or send a [/] without brackets for more options.\n";
@@ -102,7 +107,14 @@ int main(int const argc, char const* const argv[])
 	printf("Starting the client.\n");
 	peer->Connect(SERVER_IP, SERVER_PORT, 0, 0);
 
-	
+	std::cout << "Enter your username. \n";
+		std::string username;
+	std::cin >> username;
+
+	RakNet::BitStream bsOutUsername;
+	bsOutUsername.Write((RakNet::MessageID)ID_NEW_USER_JOINED);
+	bsOutUsername.Write(username);
+
 	
 	while (1)
 	{

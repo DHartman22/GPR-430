@@ -41,15 +41,24 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <unordered_map>
 
 using namespace RakNet;
 #define MAX_CLIENTS 10
 #define SERVER_PORT 4024
 //Change to 7777?
 
+//IP, Username
+std::unordered_map<std::string, std::string> ipUsernames;
+
 enum GameMessages
 {
 	ID_GAME_MESSAGE_1 = ID_USER_PACKET_ENUM + 1
+};
+
+enum UsernameMessage
+{
+	ID_NEW_USER_JOINED = ID_GAME_MESSAGE_1 + 1
 };
 
 void logEvent(int timestamp, std::string message)
@@ -112,6 +121,10 @@ int main(int const argc, char const* const argv[])
 				break;
 			case ID_NEW_INCOMING_CONNECTION:
 				printf("A connection is incoming.\n");
+
+
+
+				//ipUsernames.insert()
 				break;
 			case ID_NO_FREE_INCOMING_CONNECTIONS:
 				printf("The server is full.\n");
@@ -133,11 +146,17 @@ int main(int const argc, char const* const argv[])
 				
 				//printf("Message from " + packet->systemAddress);
 
+				std::string ip = packet->systemAddress.ToString(true);
+
+				//printf("%" PRINTF_64_BIT_MODIFIER "u ", packet->systemAddress);
 
 				RakNet::Time time;
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
 				bsIn.Read(time);
-				//printf("Message from " + )
+				printf("Message from ");
+				std::cout << ip << std::endl;
+
+				
 				int a = (int)time;
 				a /= 1000;
 				time /= 1000;
@@ -174,6 +193,15 @@ int main(int const argc, char const* const argv[])
 				printf("\n");
 				//printf();
 				//printf("%d\n", a);
+			}
+			break;
+			case ID_NEW_USER_JOINED:
+			{
+
+
+
+				//ipUsernames.insert()
+
 			}
 			break;
 			default:
