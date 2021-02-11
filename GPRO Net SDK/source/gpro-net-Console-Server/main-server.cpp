@@ -61,6 +61,16 @@ enum UsernameMessage
 	ID_NEW_USER_JOINED = ID_GAME_MESSAGE_1 + 1
 };
 
+enum ServerMessage //A message sent from the server to the client privately, such as a user list
+{
+	ID_SERVER_MESSAGE = ID_NEW_USER_JOINED + 1
+};
+
+enum PrivateMessage //a message sent from another user only for a specific client
+{
+	ID_PRIVATE_MESSAGE = ID_SERVER_MESSAGE + 1
+};
+
 void logEvent(int timestamp, std::string message)
 {
 	std::ofstream file("uniquename.txt");
@@ -80,6 +90,29 @@ void disconnect(std::string ip)
 	ipUsernames.erase(ip); //untested
 }
 
+void returnUsers(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
+{
+	RakNet::RakString rs;
+	std::string output = "\nUsers currently connected:\n";
+	
+
+	std::unordered_map<std::string, std::string>::iterator it = ipUsernames.begin();
+	while(it != ipUsernames.end())
+	{
+		output.append(it->second + "\n");
+		it++;
+	}
+
+	std::cout << output;
+	rs = output.c_str();
+
+	RakNet::BitStream bsOutUsers;
+	bsOutUsers.Write((RakNet::MessageID)ID_SERVER_MESSAGE);
+	bsOutUsers.Write(rs);
+	peer->Send(&bsOutUsers, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
+
+}
+
 int main(int const argc, char const* const argv[])
 {
 	//char str[512];
@@ -92,6 +125,8 @@ int main(int const argc, char const* const argv[])
 	RakNet::Packet* packet;
 
 	// TODO - Add code body here
+
+	
 
 	printf("Starting the server.\n");
 	// We need to let the server accept incoming connections from the clients
@@ -149,29 +184,32 @@ int main(int const argc, char const* const argv[])
 				
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
 				bsIn.Read(rs);
-				//const char * a = packet->systemAddress.ToString(false);
+				//const char * a = packet->systemAddress.ToString(false);	
 				
 				//printf("Message from " + packet->systemAddress);
 
-				std::string ip = packet->systemAddress.ToString(true);
+				std::string ip = packet->systemAddress.ToString(false);
 
 				//printf("%" PRINTF_64_BIT_MODIFIER "u ", packet->systemAddress);
 
 				RakNet::Time time;
+
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
 				bsIn.Read(time);
-				printf("Message from ");
-				std::cout << ip << std::endl;
 
-				
 				int a = (int)time;
 				a /= 1000;
 				time /= 1000;
 				printf("%" PRINTF_64_BIT_MODIFIER "u ", time);
-				printf("%s\n", rs.C_String());
 				printf("\n");
+				printf("%s\n", rs.C_String());
+
+				printf("Message from ");
+				std::cout << ipUsernames.find(ip)->second;
 
 				logEvent(a, rs.C_String());
+
+				returnUsers(peer, packet);
 
 				RakNet::BitStream bsOut;
 				bsOut.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
@@ -216,7 +254,16 @@ int main(int const argc, char const* const argv[])
 
 				std::string ip = packet->systemAddress.ToString(false);
 
-				ipUsernames.emplace(ip, username);
+				ipUsernames.emplace(ip, rs.C_String());
+
+				std::string joinMessage = rs.C_String();
+				joinMessage += " has joined the server.\n";
+
+				RakString broadcast = joinMessage.c_str();
+				BitStream bsOutBroadcast;
+				bsOutBroadcast.Write((RakNet::MessageID)ID_SERVER_MESSAGE);
+				bsOutBroadcast.Write(broadcast);
+				peer->Send(&bsOutBroadcast, HIGH_PRIORITY, RELIABLE_ORDERED, 1, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 			}
 			break;
 			default:

@@ -60,6 +60,16 @@ enum UsernameMessage
 	ID_NEW_USER_JOINED = ID_GAME_MESSAGE_1 + 1
 };
 
+enum ServerMessage //A message sent from the server to the client privately
+{
+	ID_SERVER_MESSAGE = ID_NEW_USER_JOINED + 1
+};
+
+enum PrivateMessage //a message sent from another user only for a specific client
+{
+	ID_PRIVATE_MESSAGE = ID_SERVER_MESSAGE + 1
+};
+
 void input(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 {
 	std::cout << "Type a message... or send a [/] without brackets for more options.\n";
@@ -108,12 +118,13 @@ int main(int const argc, char const* const argv[])
 	peer->Connect(SERVER_IP, SERVER_PORT, 0, 0);
 
 	std::cout << "Enter your username. \n";
-		std::string username;
-		std::cin >> username;
-		RakNet::RakString rs = username.c_str();
+	char username[500];
+		std::cin.getline(username, 500);
+		//std::cin >> username;
+		RakNet::RakString rsUsername = username;
 	RakNet::BitStream bsOutUsername;
 	bsOutUsername.Write((RakNet::MessageID)ID_NEW_USER_JOINED);
-	bsOutUsername.Write(rs);
+	bsOutUsername.Write(rsUsername);
 	
 	while (1)
 	{
@@ -144,7 +155,7 @@ int main(int const argc, char const* const argv[])
 				timeStamp = RakNet::GetTime();
 				//unsigned char useTimeStamp;
 				bsOutMessage.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
-				bsOutMessage.Write("New user connected: " + username);
+				bsOutMessage.Write("New user connected: " + rsUsername);
 				
 				bsOutTime.Write((RakNet::MessageID)ID_TIMESTAMP);
 				bsOutTime.Write(timeStamp);
@@ -177,6 +188,15 @@ int main(int const argc, char const* const argv[])
 				break;
 			case ID_CONNECTION_ATTEMPT_FAILED:
 					printf("Connection attempt failed.\n");
+				break;
+			case ID_SERVER_MESSAGE:
+			{
+				RakNet::RakString rs;
+				RakNet::BitStream bsIn(packet->data, packet->length, false);
+				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
+				bsIn.Read(rs);
+				printf("%s\n", rs.C_String());
+			}
 				break;
 			default:
 				printf("Message with identifier %i has arrived.\n", packet->data[0]);
