@@ -47,8 +47,8 @@
 #include <string>
 
 #define MAX_CLIENTS 10
-#define SERVER_PORT 4024
-#define SERVER_IP "172.16.2.65"
+#define SERVER_PORT 7777
+#define SERVER_IP "172.16.2.59"
 
 enum GameMessages
 {
@@ -114,7 +114,6 @@ int main(int const argc, char const* const argv[])
 	RakNet::BitStream bsOutUsername;
 	bsOutUsername.Write((RakNet::MessageID)ID_NEW_USER_JOINED);
 	bsOutUsername.Write(username);
-
 	
 	while (1)
 	{
@@ -145,13 +144,13 @@ int main(int const argc, char const* const argv[])
 				timeStamp = RakNet::GetTime();
 				//unsigned char useTimeStamp;
 				bsOutMessage.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
-				bsOutMessage.Write("New user connected");
+				bsOutMessage.Write("New user connected: " + username);
 				
 				bsOutTime.Write((RakNet::MessageID)ID_TIMESTAMP);
 				bsOutTime.Write(timeStamp);
-				
-				peer->Send(&bsOutTime, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
 
+				peer->Send(&bsOutUsername, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
+				peer->Send(&bsOutTime, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
 				peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
 			}
 				break;

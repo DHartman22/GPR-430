@@ -45,8 +45,8 @@
 
 using namespace RakNet;
 #define MAX_CLIENTS 10
-#define SERVER_PORT 4024
-//Change to 7777?
+//#define SERVER_PORT 4024
+#define SERVER_PORT 7777
 
 //IP, Username
 std::unordered_map<std::string, std::string> ipUsernames;
@@ -73,6 +73,11 @@ void logEvent(int timestamp, std::string message)
 		//printf(GetCurrentDirectory());
 	}
 	file.close();
+}
+
+void disconnect(std::string ip)
+{
+	ipUsernames.erase(ip); //untested
 }
 
 int main(int const argc, char const* const argv[])
@@ -121,19 +126,21 @@ int main(int const argc, char const* const argv[])
 				break;
 			case ID_NEW_INCOMING_CONNECTION:
 				printf("A connection is incoming.\n");
-
-
-
-				//ipUsernames.insert()
 				break;
 			case ID_NO_FREE_INCOMING_CONNECTIONS:
 				printf("The server is full.\n");
 				break;
 			case ID_DISCONNECTION_NOTIFICATION:
 					printf("A client has disconnected.\n");
+
+					//disconnect();
+
 				break;
 			case ID_CONNECTION_LOST:
 					printf("A client lost connection.\n");
+
+					//disconnect();
+
 				break;
 			case ID_GAME_MESSAGE_1:
 			{
@@ -197,11 +204,14 @@ int main(int const argc, char const* const argv[])
 			break;
 			case ID_NEW_USER_JOINED:
 			{
+				std::string username;
+				RakNet::BitStream bsIn(packet->data, packet->length, false);
+				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
+				bsIn.Read(username);
 
+				std::string ip = packet->systemAddress.ToString(true);
 
-
-				//ipUsernames.insert()
-
+				ipUsernames.emplace(ip, username);
 			}
 			break;
 			default:
