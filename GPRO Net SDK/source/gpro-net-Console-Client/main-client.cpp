@@ -48,7 +48,7 @@
 
 #define MAX_CLIENTS 10
 #define SERVER_PORT 7777
-#define SERVER_IP "172.16.2.59"
+#define SERVER_IP "172.16.2.64"
 
 enum GameMessages
 {
@@ -83,7 +83,7 @@ void input(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 		bsOutMessage.Write((RakNet::MessageID)ID_TIMESTAMP);
 		bsOutMessage.Write(timestamp);
 
-		peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress(SERVER_IP, 4024), false);
+		peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress(SERVER_IP, SERVER_PORT), false);
 	}
 }
 
@@ -109,11 +109,11 @@ int main(int const argc, char const* const argv[])
 
 	std::cout << "Enter your username. \n";
 		std::string username;
-	std::cin >> username;
-
+		std::cin >> username;
+		RakNet::RakString rs = username.c_str();
 	RakNet::BitStream bsOutUsername;
 	bsOutUsername.Write((RakNet::MessageID)ID_NEW_USER_JOINED);
-	bsOutUsername.Write(username);
+	bsOutUsername.Write(rs);
 	
 	while (1)
 	{

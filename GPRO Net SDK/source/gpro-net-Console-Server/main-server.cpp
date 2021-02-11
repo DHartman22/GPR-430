@@ -205,11 +205,16 @@ int main(int const argc, char const* const argv[])
 			case ID_NEW_USER_JOINED:
 			{
 				std::string username;
+				RakNet::RakString rs;
 				RakNet::BitStream bsIn(packet->data, packet->length, false);
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
-				bsIn.Read(username);
+				bsIn.Read(rs); //the act of reading this is crashing
 
-				std::string ip = packet->systemAddress.ToString(true);
+				//username = "test?";
+
+				std::cout << rs;
+
+				std::string ip = packet->systemAddress.ToString(false);
 
 				ipUsernames.emplace(ip, username);
 			}
