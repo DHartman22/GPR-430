@@ -23,12 +23,12 @@
 */
 //using namespace RakNet;
 
-#include "gpro-net/gpro-net.h"
 
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "gpro-net/gpro-net.h"
 
 #include "Raknet/MessageIdentifiers.h"
 
@@ -80,27 +80,35 @@ enum DeclineJoinEvent //Turns away users who already have an identical ip connec
 	ID_DECLINE_JOIN = ID_DISCONNECT_EVENT + 1
 };
 
-void logEvent(int timestamp, std::string message)
+void logEventUserMessage(int timestamp, std::string message, std::string username)
 {
 	std::ofstream file;
-	file.open("uniquename.txt", std::ios::app);
-	//file.open("log.txt");
+	file.open("log.txt", std::ios::app);
 
 	if (file.is_open())
 	{
-		//file << "Pain 2\n";
-		file << "Time: " + std::to_string(timestamp) + " User: N/A Message: " + message << std::endl;
-		//printf(GetCurrentDirectory());
+		file << "Time: " + std::to_string(timestamp) + " User: " + " Message: " + message << std::endl;
 	}
 
-	
+	file.close();
+}
+
+void logEvent(int timestamp, std::string rawMessage)
+{
+	std::ofstream file;
+	file.open("log.txt", std::ios::app);
+
+	if (file.is_open())
+	{
+		file << "Time: " + std::to_string(timestamp) + "|  " + rawMessage << std::endl;
+	}
+
 	file.close();
 }
 
 void disconnect(std::string ip)
 {
-
-	ipUsernames.erase(ip); //untested
+	ipUsernames.erase(ip); //removes user from active users list
 }
 
 void returnUsers(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
@@ -124,19 +132,6 @@ void returnUsers(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 	bsOutUsers.Write(rs);
 	peer->Send(&bsOutUsers, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
 
-}
-
-// https://www.cplusplus.com/reference/unordered_map/unordered_map/find/
-std::string validateUsername(std::string username)
-{
-	std::unordered_map<std::string, std::string>::const_iterator result = ipUsernames.find(username);
-
-	if (result == ipUsernames.end())
-	{
-		return "N/A";
-	}
-	else
-		return result->first;
 }
 
 int main(int const argc, char const* const argv[])
@@ -164,42 +159,23 @@ int main(int const argc, char const* const argv[])
 		{
 			switch (packet->data[0])
 			{
-			case ID_REMOTE_DISCONNECTION_NOTIFICATION:
-				printf("Another client has disconnected.\n");
-				break;
-			case ID_REMOTE_CONNECTION_LOST:
-				printf("Another client has lost the connection.\n");
-				break;
-			case ID_REMOTE_NEW_INCOMING_CONNECTION:
-				printf("Another client has connected.\n");
-				break;
-			case ID_CONNECTION_REQUEST_ACCEPTED:
-			{
-				printf("Our connection request has been accepted.\n");
-
-				// Use a BitStream to write a custom user message
-				// Bitstreams are easier to use than sending casted structures, and handle endian swapping automatically
-				RakNet::BitStream bsOut;
-				bsOut.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
-				bsOut.Write("Hello world");
-				peer->Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
-			}
-				break;
 			case ID_NEW_INCOMING_CONNECTION:
+			{
 				printf("A connection is incoming.\n");
-				break;
-			case ID_NO_FREE_INCOMING_CONNECTIONS:
-				printf("The server is full.\n");
+				logEvent((int)GetTimeMS(), "A connection is incoming.");
+			}
 				break;
 			case ID_DISCONNECTION_NOTIFICATION:
 					printf("A client has disconnected.\n");
+					logEvent((int)GetTimeMS(), "A client has disconnected.");
 
 					disconnect(packet->systemAddress.ToString(true));
 
 				break;
 			case ID_CONNECTION_LOST:
+			
 					printf("A client lost connection.\n");
-
+					logEvent((int)GetTimeMS(), "A client lost connection.");
 					disconnect(packet->systemAddress.ToString(true));
 
 				break;
@@ -236,9 +212,7 @@ int main(int const argc, char const* const argv[])
 				std::cout << "[" << ipUsernames.find(ip)->second << "]: ";
 				printf("%s\n", rs.C_String());
 
-				logEvent((int)time, rs.C_String());
-
-				//returnUsers(peer, packet);
+				logEventUserMessage((int)time, rs.C_String(), ipUsernames.find(ip)->second);
 
 				RakString output = broadcastMessage.c_str();
 
@@ -247,29 +221,6 @@ int main(int const argc, char const* const argv[])
 				bsBroadcast.Write(output);
 				peer->Send(&bsBroadcast, HIGH_PRIORITY, RELIABLE_ORDERED, 1, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 
-			}
-			break;
-			case ID_TIMESTAMP:
-			{
-				RakNet::Time time;
-				RakNet::BitStream bsIn(packet->data, packet->length, false);
-				
-				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
-
-				bsIn.Read(time);
-				
-				//bsIn.Read()
-				//RakNet::RakString rs = time;
-
-				//bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
-				//bsIn.Read(rs);
-				//printf("Message from " + )
-				int a = (int)time;
-				time /= 1000;
-				printf("%" PRINTF_64_BIT_MODIFIER "u ", time);
-				printf("\n");
-				//printf();
-				//printf("%d\n", a);
 			}
 			break;
 			case ID_NEW_USER_JOINED:
@@ -293,21 +244,18 @@ int main(int const argc, char const* const argv[])
 					}
 					it++;
 				}
-
-
 				if (!taken)
 				{
 					ipUsernames.emplace(ip, rs.C_String());
 				}
-
 					std::string joinMessage = ipUsernames.find(ip)->second;
 					joinMessage += " has joined the server.\n";
 
 					std::cout << joinMessage << std::endl;
 
-					std::cout << packet->systemAddress.ToString(true) << std::endl;
+					logEvent((int)GetTimeMS(), joinMessage);
 
-					//std::string ip = packet->systemAddress.ToString(true);
+					std::cout << packet->systemAddress.ToString(true) << std::endl;
 
 					std::size_t position = ip.find("|");
 
@@ -335,7 +283,6 @@ int main(int const argc, char const* const argv[])
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
 				bsIn.Read(rsMessage);
 
-				//std::string target = validateUsername(rsTarget.C_String());
 				std::string target = rsTarget.C_String();
 				std::string targetIp;
 				targetIp = "null";
@@ -349,12 +296,13 @@ int main(int const argc, char const* const argv[])
 						}
 						it++;
 					}
+
+
+					std::string ip = packet->systemAddress.ToString(true);
+					RakString recipient = ipUsernames.at(ip).c_str();
+
 					RakNet::BitStream bsOutMessage;
-					//RakNet::BitStream bsOutTimestamp;
 					RakNet::Time timestamp = RakNet::GetTime();
-
-
-					//sc.EncodeString
 					bsOutMessage.Write((RakNet::MessageID)ID_PRIVATE_MESSAGE);
 					bsOutMessage.Write(rsTarget);
 					bsOutMessage.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
@@ -362,13 +310,20 @@ int main(int const argc, char const* const argv[])
 					bsOutMessage.Write((RakNet::MessageID)ID_TIMESTAMP);
 					bsOutMessage.Write(timestamp);
 
-					
+					std::string consoleOutput = "";
+
+					consoleOutput.append("Message from ");
+					consoleOutput.append(recipient.C_String());
+					consoleOutput.append(" to " + target + ": ");
+					consoleOutput.append(rsMessage.C_String());
+
+					logEvent((int)GetTimeMS(), consoleOutput);
+
+					std::cout << consoleOutput << std::endl;
 
 					std::size_t position = targetIp.find("|");
 
 					std::string port = targetIp.substr(position + 1);
-
-					std::cout << port << std::endl;
 
 					if (targetIp != "null")
 					{
@@ -377,7 +332,7 @@ int main(int const argc, char const* const argv[])
 					}
 					else
 					{
-						std::cout << targetIp;
+						std::cout << "Unable to find user to send message.\n";
 					}
 
 
@@ -385,17 +340,28 @@ int main(int const argc, char const* const argv[])
 			break;
 			case ID_SERVER_MESSAGE:
 			{
+				std::string ip = packet->systemAddress.ToString(true);
+				std::string consoleOutput = ipUsernames.at(ip).c_str();
+				consoleOutput.append(" requested a user list.");
+				std::cout << consoleOutput;
+				logEvent((int)GetTimeMS(), consoleOutput);
+
 				returnUsers(peer, packet);
 			}
 			break;
 			case ID_DISCONNECT_EVENT:
 			{
 				std::string ip = packet->systemAddress.ToString(true);
+				std::string consoleOutput = ipUsernames.at(ip).c_str();
+				consoleOutput.append(" disconnected.");
+				std::cout << consoleOutput;
+				logEvent((int)GetTimeMS(), consoleOutput);
 				disconnect(ip);
 			}
 			break;
 			default:
 				printf("Message with identifier %i has arrived.\n", packet->data[0]);
+				logEvent((int)GetTimeMS(), "Message with identifier % i has arrived.");
 				break;
 			}
 		}

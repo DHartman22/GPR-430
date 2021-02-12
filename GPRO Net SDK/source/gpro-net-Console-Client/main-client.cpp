@@ -329,7 +329,7 @@ int main(int const argc, char const* const argv[])
 				bsIn.Read(timestamp);
 
 				std::string broadcastMessage = "";
-				broadcastMessage += std::to_string((int)timestamp);
+				broadcastMessage += std::to_string(timestamp);
 				broadcastMessage += +" | ["; 
 				broadcastMessage += rsUsername.C_String();
 				broadcastMessage +=	+"]: ";
