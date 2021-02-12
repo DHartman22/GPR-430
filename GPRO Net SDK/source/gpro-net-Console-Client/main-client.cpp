@@ -94,7 +94,7 @@ void inputPrivate(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 		std::cout << "Type a username to send this message to.\n";
 		std::cin.getline(inputName, 100);
 		RakNet::RakString rsUsername = inputName;
-
+		
 		//packet = peer->Receive();
 		//peer->DeallocatePacket(packet);
 		//packet = peer->Receive();
@@ -316,11 +316,28 @@ int main(int const argc, char const* const argv[])
 				break;
 			case ID_PRIVATE_MESSAGE:
 			{
-				RakNet::RakString rs;
+				RakNet::RakString rsUsername;
+				RakNet::RakString rsMessage;
+				int timestamp;
+
 				RakNet::BitStream bsIn(packet->data, packet->length, false);
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
-				bsIn.Read(rs);
-				printf("%s\n", rs.C_String());
+				bsIn.Read(rsUsername);
+				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
+				bsIn.Read(rsMessage);
+				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
+				bsIn.Read(timestamp);
+
+				std::string broadcastMessage = "";
+				broadcastMessage += std::to_string((int)timestamp);
+				broadcastMessage += +" | ["; 
+				broadcastMessage += rsUsername.C_String();
+				broadcastMessage +=	+"]: ";
+				broadcastMessage += rsMessage.C_String();
+
+				std::cout << broadcastMessage << std::endl;
+
+				
 			}
 			break;
 			case ID_DECLINE_JOIN:

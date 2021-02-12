@@ -133,10 +133,10 @@ std::string validateUsername(std::string username)
 
 	if (result == ipUsernames.end())
 	{
-		return result->first;
+		return "N/A";
 	}
 	else
-		return "N/A";
+		return result->first;
 }
 
 int main(int const argc, char const* const argv[])
@@ -194,13 +194,13 @@ int main(int const argc, char const* const argv[])
 			case ID_DISCONNECTION_NOTIFICATION:
 					printf("A client has disconnected.\n");
 
-					disconnect(packet->systemAddress.ToString(false));
+					disconnect(packet->systemAddress.ToString(true));
 
 				break;
 			case ID_CONNECTION_LOST:
 					printf("A client lost connection.\n");
 
-					disconnect(packet->systemAddress.ToString(false));
+					disconnect(packet->systemAddress.ToString(true));
 
 				break;
 			case ID_GAME_MESSAGE_1:
@@ -214,7 +214,7 @@ int main(int const argc, char const* const argv[])
 				
 				//printf("Message from " + packet->systemAddress);
 
-				std::string ip = packet->systemAddress.ToString(false);
+				std::string ip = packet->systemAddress.ToString(true);
 
 				//printf("%" PRINTF_64_BIT_MODIFIER "u ", packet->systemAddress);
 
@@ -240,9 +240,11 @@ int main(int const argc, char const* const argv[])
 
 				//returnUsers(peer, packet);
 
+				RakString output = broadcastMessage.c_str();
+
 				RakNet::BitStream bsBroadcast;
-				bsBroadcast.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
-				bsBroadcast.Write(broadcastMessage);
+				bsBroadcast.Write((RakNet::MessageID)ID_SERVER_MESSAGE);
+				bsBroadcast.Write(output);
 				peer->Send(&bsBroadcast, HIGH_PRIORITY, RELIABLE_ORDERED, 1, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 
 			}
@@ -278,7 +280,7 @@ int main(int const argc, char const* const argv[])
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
 				bsIn.Read(rs); 
 
-				std::string ip = packet->systemAddress.ToString(false);
+				std::string ip = packet->systemAddress.ToString(true);
 
 
 				bool taken = false;
@@ -303,6 +305,18 @@ int main(int const argc, char const* const argv[])
 
 					std::cout << joinMessage << std::endl;
 
+					std::cout << packet->systemAddress.ToString(true) << std::endl;
+
+					//std::string ip = packet->systemAddress.ToString(true);
+
+					std::size_t position = ip.find("|");
+
+					std::string port = ip.substr(position+1);
+
+					std::cout << port << std::endl;
+
+					
+
 					RakString broadcast = joinMessage.c_str();
 					BitStream bsOutBroadcast;
 					bsOutBroadcast.Write((RakNet::MessageID)ID_SERVER_MESSAGE);
@@ -321,14 +335,14 @@ int main(int const argc, char const* const argv[])
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
 				bsIn.Read(rsMessage);
 
-				std::string target = validateUsername(rsTarget.C_String());
+				//std::string target = validateUsername(rsTarget.C_String());
+				std::string target = rsTarget.C_String();
 				std::string targetIp;
-				if (target != "N/A")
-				{
+				targetIp = "null";
 					std::unordered_map<std::string, std::string>::iterator it = ipUsernames.begin();
 					while (it != ipUsernames.end())
 					{
-						if (it->second == target)
+						if (it->second == rsTarget.C_String())
 						{
 							targetIp = it->first;
 							break;
@@ -348,10 +362,25 @@ int main(int const argc, char const* const argv[])
 					bsOutMessage.Write((RakNet::MessageID)ID_TIMESTAMP);
 					bsOutMessage.Write(timestamp);
 
-					RakNet::SystemAddress address = SystemAddress(targetIp.c_str());
+					
 
-					peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, address, false);
-				}
+					std::size_t position = targetIp.find("|");
+
+					std::string port = targetIp.substr(position + 1);
+
+					std::cout << port << std::endl;
+
+					if (targetIp != "null")
+					{
+						RakNet::SystemAddress address = SystemAddress(targetIp.c_str(), std::stoi(port));
+						peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, address, false);
+					}
+					else
+					{
+						std::cout << targetIp;
+					}
+
+
 			}
 			break;
 			case ID_SERVER_MESSAGE:
@@ -361,7 +390,7 @@ int main(int const argc, char const* const argv[])
 			break;
 			case ID_DISCONNECT_EVENT:
 			{
-				std::string ip = packet->systemAddress.ToString(false);
+				std::string ip = packet->systemAddress.ToString(true);
 				disconnect(ip);
 			}
 			break;
