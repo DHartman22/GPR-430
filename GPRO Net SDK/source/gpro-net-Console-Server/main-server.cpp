@@ -70,22 +70,36 @@ enum PrivateMessage //a message sent from another user only for a specific clien
 	ID_PRIVATE_MESSAGE = ID_SERVER_MESSAGE + 1
 };
 
+enum DisconnectMessage //sends when client is shut down
+{
+	ID_DISCONNECT_EVENT = ID_PRIVATE_MESSAGE + 1
+};
+
+enum DeclineJoinEvent //Turns away users who already have an identical ip connected
+{
+	ID_DECLINE_JOIN = ID_DISCONNECT_EVENT + 1
+};
+
 void logEvent(int timestamp, std::string message)
 {
-	std::ofstream file("uniquename.txt");
+	std::ofstream file;
 	file.open("uniquename.txt", std::ios::app);
 	//file.open("log.txt");
 
 	if (file.is_open())
 	{
+		//file << "Pain 2\n";
 		file << "Time: " + std::to_string(timestamp) + " User: N/A Message: " + message << std::endl;
 		//printf(GetCurrentDirectory());
 	}
+
+	
 	file.close();
 }
 
 void disconnect(std::string ip)
 {
+
 	ipUsernames.erase(ip); //untested
 }
 
@@ -180,13 +194,13 @@ int main(int const argc, char const* const argv[])
 			case ID_DISCONNECTION_NOTIFICATION:
 					printf("A client has disconnected.\n");
 
-					disconnect(packet->systemAddress.ToString(true));
+					disconnect(packet->systemAddress.ToString(false));
 
 				break;
 			case ID_CONNECTION_LOST:
 					printf("A client lost connection.\n");
 
-					disconnect(packet->systemAddress.ToString(true));
+					disconnect(packet->systemAddress.ToString(false));
 
 				break;
 			case ID_GAME_MESSAGE_1:
@@ -208,25 +222,29 @@ int main(int const argc, char const* const argv[])
 
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
 				bsIn.Read(time);
+				//time /= 1000;
 
-				int a = (int)time;
-				a /= 1000;
-				time /= 1000;
-				printf("%" PRINTF_64_BIT_MODIFIER "u ", time);
-				printf("\n");
+				std::string broadcastMessage = "";
+				broadcastMessage += std::to_string((int)time);
+				broadcastMessage += +" | [" + ipUsernames.find(ip)->second + "]: ";
+				broadcastMessage += rs.C_String();
+
+				std::cout << time;
+				//printf("%" PRINTF_64_BIT_MODIFIER "u ", time);
+				printf(" | ");
+
+				std::cout << "[" << ipUsernames.find(ip)->second << "]: ";
 				printf("%s\n", rs.C_String());
 
-				printf("Message from ");
-				std::cout << ipUsernames.find(ip)->second;
-
-				logEvent(a, rs.C_String());
+				logEvent((int)time, rs.C_String());
 
 				//returnUsers(peer, packet);
 
-				RakNet::BitStream bsOut;
-				bsOut.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
-				bsOut.Write("Your message has been received.\n");
-				peer->Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED, 1, packet->systemAddress, false);
+				RakNet::BitStream bsBroadcast;
+				bsBroadcast.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
+				bsBroadcast.Write(broadcastMessage);
+				peer->Send(&bsBroadcast, HIGH_PRIORITY, RELIABLE_ORDERED, 1, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+
 			}
 			break;
 			case ID_TIMESTAMP:
@@ -258,42 +276,93 @@ int main(int const argc, char const* const argv[])
 				RakNet::RakString rs;
 				RakNet::BitStream bsIn(packet->data, packet->length, false);
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
-				bsIn.Read(rs); //the act of reading this is crashing
-
-				//username = "test?";
-
-				std::cout << rs;
+				bsIn.Read(rs); 
 
 				std::string ip = packet->systemAddress.ToString(false);
 
-				ipUsernames.emplace(ip, rs.C_String());
 
-				std::string joinMessage = rs.C_String();
-				joinMessage += " has joined the server.\n";
+				bool taken = false;
+				std::unordered_map<std::string, std::string>::iterator it = ipUsernames.begin();
+				while (it != ipUsernames.end())
+				{
+					if (it->first == ip)
+					{
+						taken = true;
+					}
+					it++;
+				}
 
-				RakString broadcast = joinMessage.c_str();
-				BitStream bsOutBroadcast;
-				bsOutBroadcast.Write((RakNet::MessageID)ID_SERVER_MESSAGE);
-				bsOutBroadcast.Write(broadcast);
-				peer->Send(&bsOutBroadcast, HIGH_PRIORITY, RELIABLE_ORDERED, 1, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+
+				if (!taken)
+				{
+					ipUsernames.emplace(ip, rs.C_String());
+				}
+
+					std::string joinMessage = ipUsernames.find(ip)->second;
+					joinMessage += " has joined the server.\n";
+
+					std::cout << joinMessage << std::endl;
+
+					RakString broadcast = joinMessage.c_str();
+					BitStream bsOutBroadcast;
+					bsOutBroadcast.Write((RakNet::MessageID)ID_SERVER_MESSAGE);
+					bsOutBroadcast.Write(broadcast);
+					peer->Send(&bsOutBroadcast, HIGH_PRIORITY, RELIABLE_ORDERED, 1, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 			}
 			break;
 			case ID_PRIVATE_MESSAGE:
 			{
 				std::string username;
-				RakNet::RakString rs;
+				RakNet::RakString rsTarget;
+				RakNet::RakString rsMessage;
 				RakNet::BitStream bsIn(packet->data, packet->length, false);
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
-				bsIn.Read(rs); //the act of reading this is crashing
+				bsIn.Read(rsTarget); 
+				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
+				bsIn.Read(rsMessage);
 
-				std::string target = validateUsername(username);
+				std::string target = validateUsername(rsTarget.C_String());
+				std::string targetIp;
+				if (target != "N/A")
+				{
+					std::unordered_map<std::string, std::string>::iterator it = ipUsernames.begin();
+					while (it != ipUsernames.end())
+					{
+						if (it->second == target)
+						{
+							targetIp = it->first;
+							break;
+						}
+						it++;
+					}
+					RakNet::BitStream bsOutMessage;
+					//RakNet::BitStream bsOutTimestamp;
+					RakNet::Time timestamp = RakNet::GetTime();
 
-				//send it out
+
+					//sc.EncodeString
+					bsOutMessage.Write((RakNet::MessageID)ID_PRIVATE_MESSAGE);
+					bsOutMessage.Write(rsTarget);
+					bsOutMessage.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
+					bsOutMessage.Write(rsMessage);
+					bsOutMessage.Write((RakNet::MessageID)ID_TIMESTAMP);
+					bsOutMessage.Write(timestamp);
+
+					RakNet::SystemAddress address = SystemAddress(targetIp.c_str());
+
+					peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, address, false);
+				}
 			}
 			break;
 			case ID_SERVER_MESSAGE:
 			{
 				returnUsers(peer, packet);
+			}
+			break;
+			case ID_DISCONNECT_EVENT:
+			{
+				std::string ip = packet->systemAddress.ToString(false);
+				disconnect(ip);
 			}
 			break;
 			default:
