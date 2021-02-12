@@ -318,7 +318,7 @@ int main(int const argc, char const* const argv[])
 			{
 				RakNet::RakString rsUsername;
 				RakNet::RakString rsMessage;
-				int timestamp;
+				RakNet::Time timestamp;
 
 				RakNet::BitStream bsIn(packet->data, packet->length, false);
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
@@ -329,7 +329,7 @@ int main(int const argc, char const* const argv[])
 				bsIn.Read(timestamp);
 
 				std::string broadcastMessage = "";
-				broadcastMessage += std::to_string(timestamp);
+				broadcastMessage += std::to_string((int)timestamp);
 				broadcastMessage += +" | ["; 
 				broadcastMessage += rsUsername.C_String();
 				broadcastMessage +=	+"]: ";

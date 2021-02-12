@@ -255,16 +255,10 @@ int main(int const argc, char const* const argv[])
 
 					logEvent((int)GetTimeMS(), joinMessage);
 
-					std::cout << packet->systemAddress.ToString(true) << std::endl;
-
 					std::size_t position = ip.find("|");
 
 					std::string port = ip.substr(position+1);
-
-					std::cout << port << std::endl;
-
 					
-
 					RakString broadcast = joinMessage.c_str();
 					BitStream bsOutBroadcast;
 					bsOutBroadcast.Write((RakNet::MessageID)ID_SERVER_MESSAGE);
@@ -299,27 +293,19 @@ int main(int const argc, char const* const argv[])
 
 
 					std::string ip = packet->systemAddress.ToString(true);
-					RakString recipient = ipUsernames.at(ip).c_str();
+					std::string recipString = "From: ";
+					recipString.append(ipUsernames.at(ip).c_str());
+					RakString recipient = recipString.c_str();
 
 					RakNet::BitStream bsOutMessage;
 					RakNet::Time timestamp = RakNet::GetTime();
 					bsOutMessage.Write((RakNet::MessageID)ID_PRIVATE_MESSAGE);
-					bsOutMessage.Write(rsTarget);
+					bsOutMessage.Write(recipient);
 					bsOutMessage.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
 					bsOutMessage.Write(rsMessage);
 					bsOutMessage.Write((RakNet::MessageID)ID_TIMESTAMP);
 					bsOutMessage.Write(timestamp);
 
-					std::string consoleOutput = "";
-
-					consoleOutput.append("Message from ");
-					consoleOutput.append(recipient.C_String());
-					consoleOutput.append(" to " + target + ": ");
-					consoleOutput.append(rsMessage.C_String());
-
-					logEvent((int)GetTimeMS(), consoleOutput);
-
-					std::cout << consoleOutput << std::endl;
 
 					std::size_t position = targetIp.find("|");
 
@@ -327,6 +313,16 @@ int main(int const argc, char const* const argv[])
 
 					if (targetIp != "null")
 					{
+						std::string consoleOutput = "";
+
+						consoleOutput.append("Message from ");
+						consoleOutput.append(recipient.C_String());
+						consoleOutput.append(" to " + target + ": ");
+						consoleOutput.append(rsMessage.C_String());
+
+						logEvent((int)GetTimeMS(), consoleOutput);
+
+						std::cout << consoleOutput << std::endl;
 						RakNet::SystemAddress address = SystemAddress(targetIp.c_str(), std::stoi(port));
 						peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, address, false);
 					}
