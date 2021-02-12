@@ -1,4 +1,10 @@
 /*
+Project 1: Server/Client Chat Application
+
+Authors: Daniel Hartman and Joseph Castaner
+*/
+
+/*
    Copyright 2021 Daniel S. Buckstein
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,9 +27,6 @@
 	main-server.c/.cpp
 	Main source for console server application.
 */
-//using namespace RakNet;
-
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,7 +51,7 @@ using namespace RakNet;
 #define SERVER_PORT 7777
 
 //IP, Username
-std::unordered_map<std::string, std::string> ipUsernames;
+std::unordered_map<std::string, std::string> ipUsernames; //storage for user list
 
 enum GameMessages
 {
@@ -80,9 +83,11 @@ enum DeclineJoinEvent //Turns away users who already have an identical ip connec
 	ID_DECLINE_JOIN = ID_DISCONNECT_EVENT + 1
 };
 
+//Logs message events to a log text file that can be referenced later
 void logEventUserMessage(int timestamp, std::string message, std::string username)
 {
 	std::ofstream file;
+	//Users:\username\Remote\gpro - net - sdk - remote\bin\x64\v142\Debug, location of log.txt
 	file.open("log.txt", std::ios::app);
 
 	if (file.is_open())
@@ -93,9 +98,11 @@ void logEventUserMessage(int timestamp, std::string message, std::string usernam
 	file.close();
 }
 
+//Logs events to a log text file that can be referenced later
 void logEvent(int timestamp, std::string rawMessage)
 {
 	std::ofstream file;
+	//Users:\username\Remote\gpro - net - sdk - remote\bin\x64\v142\Debug, location of log.txt
 	file.open("log.txt", std::ios::app);
 
 	if (file.is_open())
@@ -106,27 +113,31 @@ void logEvent(int timestamp, std::string rawMessage)
 	file.close();
 }
 
+//Erases connection information when a user disconnects
 void disconnect(std::string ip)
 {
 	ipUsernames.erase(ip); //removes user from active users list
 }
 
+//Returns a list of all currently connected users and broadcasts it
 void returnUsers(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 {
 	RakNet::RakString rs;
 	std::string output = "\nUsers currently connected:\n";
 	
 
-	std::unordered_map<std::string, std::string>::iterator it = ipUsernames.begin();
+	std::unordered_map<std::string, std::string>::iterator it = ipUsernames.begin(); //iterate through list and add all names
 	while(it != ipUsernames.end())
 	{
 		output.append(it->second + "\n");
 		it++;
 	}
 
+	//output the list
 	std::cout << output;
-	rs = output.c_str();
+	rs = output.c_str(); 
 
+	//broadcast the list
 	RakNet::BitStream bsOutUsers;
 	bsOutUsers.Write((RakNet::MessageID)ID_SERVER_MESSAGE);
 	bsOutUsers.Write(rs);
@@ -136,23 +147,19 @@ void returnUsers(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 
 int main(int const argc, char const* const argv[])
 {
-	//char str[512];
 	RakNet::RakPeerInterface* peer = RakNet::RakPeerInterface::GetInstance();
 	bool isServer;
 	
 	SocketDescriptor sd(SERVER_PORT, 0);
 	peer->Startup(MAX_CLIENTS, &sd, 1);
-	isServer = true;
+	isServer = true; //This is a server, yes
 	RakNet::Packet* packet;
-
-	// TODO - Add code body here
-
-	
 
 	printf("Starting the server.\n");
 	// We need to let the server accept incoming connections from the clients
 	peer->SetMaximumIncomingConnections(MAX_CLIENTS);
 
+	//When a packet is received, decipher it's contents and act upon it
 	while (1)
 	{
 		for (packet = peer->Receive(); packet; peer->DeallocatePacket(packet), packet = peer->Receive())
@@ -169,44 +176,37 @@ int main(int const argc, char const* const argv[])
 					printf("A client has disconnected.\n");
 					logEvent((int)GetTimeMS(), "A client has disconnected.");
 
-					disconnect(packet->systemAddress.ToString(true));
+					disconnect(packet->systemAddress.ToString(true)); //change list
 
 				break;
 			case ID_CONNECTION_LOST:
 			
 					printf("A client lost connection.\n");
 					logEvent((int)GetTimeMS(), "A client lost connection.");
-					disconnect(packet->systemAddress.ToString(true));
+					disconnect(packet->systemAddress.ToString(true)); //change list
 
 				break;
-			case ID_GAME_MESSAGE_1:
+			case ID_GAME_MESSAGE_1: //Parses a message from the client and broadcasts to all currently connected users
 			{
 				RakNet::RakString rs;
 				RakNet::BitStream bsIn(packet->data, packet->length, false);
 				
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
-				bsIn.Read(rs);
-				//const char * a = packet->systemAddress.ToString(false);	
-				
-				//printf("Message from " + packet->systemAddress);
+				bsIn.Read(rs); //read only the message
 
 				std::string ip = packet->systemAddress.ToString(true);
-
-				//printf("%" PRINTF_64_BIT_MODIFIER "u ", packet->systemAddress);
 
 				RakNet::Time time;
 
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
 				bsIn.Read(time);
-				//time /= 1000;
 
-				std::string broadcastMessage = "";
+				std::string broadcastMessage = ""; //string together the timestamp and user name
 				broadcastMessage += std::to_string((int)time);
 				broadcastMessage += +" | [" + ipUsernames.find(ip)->second + "]: ";
 				broadcastMessage += rs.C_String();
 
-				std::cout << time;
-				//printf("%" PRINTF_64_BIT_MODIFIER "u ", time);
+				std::cout << time; //Parses a timestamp to be displayed alongside the message received
 				printf(" | ");
 
 				std::cout << "[" << ipUsernames.find(ip)->second << "]: ";
@@ -216,6 +216,7 @@ int main(int const argc, char const* const argv[])
 
 				RakString output = broadcastMessage.c_str();
 
+				//broadcast message
 				RakNet::BitStream bsBroadcast;
 				bsBroadcast.Write((RakNet::MessageID)ID_SERVER_MESSAGE);
 				bsBroadcast.Write(output);
@@ -223,20 +224,20 @@ int main(int const argc, char const* const argv[])
 
 			}
 			break;
-			case ID_NEW_USER_JOINED:
+			case ID_NEW_USER_JOINED: //Receives a username from any new connections, adding them to the list of current users and broadcasting their entry
 			{
 				std::string username;
 				RakNet::RakString rs;
 				RakNet::BitStream bsIn(packet->data, packet->length, false);
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
-				bsIn.Read(rs); 
+				bsIn.Read(rs); //read the username and ip address afterwards
 
-				std::string ip = packet->systemAddress.ToString(true);
+				std::string ip = packet->systemAddress.ToString(true); 
 
 
 				bool taken = false;
 				std::unordered_map<std::string, std::string>::iterator it = ipUsernames.begin();
-				while (it != ipUsernames.end())
+				while (it != ipUsernames.end()) //find if the user is already connected or not
 				{
 					if (it->first == ip)
 					{
@@ -246,10 +247,10 @@ int main(int const argc, char const* const argv[])
 				}
 				if (!taken)
 				{
-					ipUsernames.emplace(ip, rs.C_String());
+					ipUsernames.emplace(ip, rs.C_String()); //add new user
 				}
 					std::string joinMessage = ipUsernames.find(ip)->second;
-					joinMessage += " has joined the server.\n";
+					joinMessage += " has joined the server.\n"; //announce their joining
 
 					std::cout << joinMessage << std::endl;
 
@@ -257,18 +258,18 @@ int main(int const argc, char const* const argv[])
 
 					std::size_t position = ip.find("|");
 
-					std::string port = ip.substr(position+1);
+					std::string port = ip.substr(position+1); //split the ip to grab port number
 					
-					RakString broadcast = joinMessage.c_str();
+					RakString broadcast = joinMessage.c_str(); //broadcast join message
 					BitStream bsOutBroadcast;
 					bsOutBroadcast.Write((RakNet::MessageID)ID_SERVER_MESSAGE);
 					bsOutBroadcast.Write(broadcast);
 					peer->Send(&bsOutBroadcast, HIGH_PRIORITY, RELIABLE_ORDERED, 1, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 			}
 			break;
-			case ID_PRIVATE_MESSAGE:
+			case ID_PRIVATE_MESSAGE: //Parses a private message from a client and directs the message to the specified target
 			{
-				std::string username;
+				std::string username; //receive target username and message
 				RakNet::RakString rsTarget;
 				RakNet::RakString rsMessage;
 				RakNet::BitStream bsIn(packet->data, packet->length, false);
@@ -279,7 +280,7 @@ int main(int const argc, char const* const argv[])
 
 				std::string target = rsTarget.C_String();
 				std::string targetIp;
-				targetIp = "null";
+				targetIp = "null"; //find the user's ip via the username
 					std::unordered_map<std::string, std::string>::iterator it = ipUsernames.begin();
 					while (it != ipUsernames.end())
 					{
@@ -291,13 +292,13 @@ int main(int const argc, char const* const argv[])
 						it++;
 					}
 
-
+					//set up recipient
 					std::string ip = packet->systemAddress.ToString(true);
 					std::string recipString = "From: ";
 					recipString.append(ipUsernames.at(ip).c_str());
 					RakString recipient = recipString.c_str();
 
-					RakNet::BitStream bsOutMessage;
+					RakNet::BitStream bsOutMessage; //set up bitstream with timestamp, sender and message
 					RakNet::Time timestamp = RakNet::GetTime();
 					bsOutMessage.Write((RakNet::MessageID)ID_PRIVATE_MESSAGE);
 					bsOutMessage.Write(recipient);
@@ -311,7 +312,7 @@ int main(int const argc, char const* const argv[])
 
 					std::string port = targetIp.substr(position + 1);
 
-					if (targetIp != "null")
+					if (targetIp != "null") //if recipient exists, craft server message and send
 					{
 						std::string consoleOutput = "";
 
@@ -326,15 +327,13 @@ int main(int const argc, char const* const argv[])
 						RakNet::SystemAddress address = SystemAddress(targetIp.c_str(), std::stoi(port));
 						peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, address, false);
 					}
-					else
+					else //else, fail
 					{
 						std::cout << "Unable to find user to send message.\n";
 					}
-
-
 			}
 			break;
-			case ID_SERVER_MESSAGE:
+			case ID_SERVER_MESSAGE: //Broadcasts the user list upon receiving a query
 			{
 				std::string ip = packet->systemAddress.ToString(true);
 				std::string consoleOutput = ipUsernames.at(ip).c_str();
@@ -342,10 +341,10 @@ int main(int const argc, char const* const argv[])
 				std::cout << consoleOutput;
 				logEvent((int)GetTimeMS(), consoleOutput);
 
-				returnUsers(peer, packet);
+				returnUsers(peer, packet); //call user list
 			}
 			break;
-			case ID_DISCONNECT_EVENT:
+			case ID_DISCONNECT_EVENT: //take the user who disconnected and announce it
 			{
 				std::string ip = packet->systemAddress.ToString(true);
 				std::string consoleOutput = ipUsernames.at(ip).c_str();
@@ -363,6 +362,7 @@ int main(int const argc, char const* const argv[])
 		}
 	}
 
+	//destroy instance
 	RakNet::RakPeerInterface::DestroyInstance(peer);
 
 	return 0;
