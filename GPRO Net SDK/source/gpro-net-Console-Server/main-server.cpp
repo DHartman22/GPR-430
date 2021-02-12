@@ -45,7 +45,6 @@
 
 using namespace RakNet;
 #define MAX_CLIENTS 10
-//#define SERVER_PORT 4024
 #define SERVER_PORT 7777
 
 //IP, Username
@@ -113,6 +112,19 @@ void returnUsers(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 
 }
 
+// https://www.cplusplus.com/reference/unordered_map/unordered_map/find/
+std::string validateUsername(std::string username)
+{
+	std::unordered_map<std::string, std::string>::const_iterator result = ipUsernames.find(username);
+
+	if (result == ipUsernames.end())
+	{
+		return result->first;
+	}
+	else
+		return "N/A";
+}
+
 int main(int const argc, char const* const argv[])
 {
 	//char str[512];
@@ -168,13 +180,13 @@ int main(int const argc, char const* const argv[])
 			case ID_DISCONNECTION_NOTIFICATION:
 					printf("A client has disconnected.\n");
 
-					//disconnect();
+					disconnect(packet->systemAddress.ToString(true));
 
 				break;
 			case ID_CONNECTION_LOST:
 					printf("A client lost connection.\n");
 
-					//disconnect();
+					disconnect(packet->systemAddress.ToString(true));
 
 				break;
 			case ID_GAME_MESSAGE_1:
@@ -209,7 +221,7 @@ int main(int const argc, char const* const argv[])
 
 				logEvent(a, rs.C_String());
 
-				returnUsers(peer, packet);
+				//returnUsers(peer, packet);
 
 				RakNet::BitStream bsOut;
 				bsOut.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
@@ -264,6 +276,24 @@ int main(int const argc, char const* const argv[])
 				bsOutBroadcast.Write((RakNet::MessageID)ID_SERVER_MESSAGE);
 				bsOutBroadcast.Write(broadcast);
 				peer->Send(&bsOutBroadcast, HIGH_PRIORITY, RELIABLE_ORDERED, 1, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+			}
+			break;
+			case ID_PRIVATE_MESSAGE:
+			{
+				std::string username;
+				RakNet::RakString rs;
+				RakNet::BitStream bsIn(packet->data, packet->length, false);
+				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
+				bsIn.Read(rs); //the act of reading this is crashing
+
+				std::string target = validateUsername(username);
+
+				//send it out
+			}
+			break;
+			case ID_SERVER_MESSAGE:
+			{
+				returnUsers(peer, packet);
 			}
 			break;
 			default:

@@ -70,6 +70,43 @@ enum PrivateMessage //a message sent from another user only for a specific clien
 	ID_PRIVATE_MESSAGE = ID_SERVER_MESSAGE + 1
 };
 
+void inputPrivate(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
+{
+	std::cout << "Type a message... or send a [/] without brackets to go back.\n";
+	char input[500], inputName[100];
+	//RakNet::RakString input;
+	std::cin.getline(input, 500);
+	if (input[0] != '/')
+	{
+		std::cout << "Type a username to send this message to.\n";
+		std::cin.getline(inputName, 100);
+		RakNet::RakString rsUsername = inputName;
+
+		//packet = peer->Receive();
+		//peer->DeallocatePacket(packet);
+		//packet = peer->Receive();
+		//RakNet::StringCompressor sc;
+		RakNet::BitStream bsOutMessage;
+		//RakNet::BitStream bsOutTimestamp;
+		RakNet::Time timestamp = RakNet::GetTime();
+
+
+		//sc.EncodeString
+		bsOutMessage.Write((RakNet::MessageID)ID_PRIVATE_MESSAGE);
+		bsOutMessage.Write(rsUsername);
+		bsOutMessage.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
+		bsOutMessage.Write(input);
+		bsOutMessage.Write((RakNet::MessageID)ID_TIMESTAMP);
+		bsOutMessage.Write(timestamp);
+
+		peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress(SERVER_IP, 4024), false); //4024?
+	}
+	else
+	{
+		return;
+	}
+}
+
 void input(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 {
 	std::cout << "Type a message... or send a [/] without brackets for more options.\n";
@@ -93,7 +130,30 @@ void input(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 		bsOutMessage.Write((RakNet::MessageID)ID_TIMESTAMP);
 		bsOutMessage.Write(timestamp);
 
-		peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress(SERVER_IP, SERVER_PORT), false);
+		peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress(SERVER_IP, 4024), false);
+	}
+	else
+	{
+		std::cout << "Options: 1) Ask for list of active users 2) Send a Private Message 3) Go Back \n";
+		int input2;
+		std::cin >> input2;
+		RakNet::BitStream bsQueryUserList; //doesnt like this declaration in the switch
+		switch (input2)
+		{
+		case 1:
+			bsQueryUserList.Write((RakNet::MessageID)ID_SERVER_MESSAGE);
+			peer->Send(&bsQueryUserList, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
+			break;
+		case 2:
+			inputPrivate(peer, packet);
+			break;
+		case 3:
+			//nothing, if possible return
+			break;
+		default:
+			printf("Input was not valid... Try again.");
+			break;
+		}
 	}
 }
 
@@ -198,6 +258,15 @@ int main(int const argc, char const* const argv[])
 				printf("%s\n", rs.C_String());
 			}
 				break;
+			case ID_PRIVATE_MESSAGE:
+			{
+				RakNet::RakString rs;
+				RakNet::BitStream bsIn(packet->data, packet->length, false);
+				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
+				bsIn.Read(rs);
+				printf("%s\n", rs.C_String());
+			}
+			break;
 			default:
 				printf("Message with identifier %i has arrived.\n", packet->data[0]);
 				break;
