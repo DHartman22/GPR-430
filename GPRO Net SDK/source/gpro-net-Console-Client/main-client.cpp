@@ -49,7 +49,7 @@
 
 #define MAX_CLIENTS 10
 #define SERVER_PORT 7777
-#define SERVER_IP "172.16.2.64"
+#define SERVER_IP "172.16.2.57"
 
 enum GameMessages
 {
