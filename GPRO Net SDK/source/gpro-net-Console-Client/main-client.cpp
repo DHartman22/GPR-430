@@ -43,6 +43,8 @@
 #include "RakNet/RakNetTypes.h"  // MessageID
 #include "RakNet/GetTime.h"
 #include "RakNet/StringCompressor.h"
+#include "gpro-net/gpro-net-common/gpro-net-console.h"
+#include "gpro-net/gpro-net-common/gpro-net-gamestate.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -228,7 +230,26 @@ int main(int const argc, char const* const argv[])
 	
 	printf("Starting the client.\n");
 	peer->Connect(SERVER_IP, SERVER_PORT, 0, 0);
-
+	gpro_consoleDrawTestPatch();
+	gpro_consolePrintDebug("[8]\n_______________________________________
+		0 | 0  |    | 1  |    | 2  |    | 3  |    |[4]
+		| ____ | ____ | ____ | ____ | ____ | ____ | ____ | ____ |
+		1	|    | 0  |    | 1  |    | 2  |    | 3  |
+		|____ | ____ | ____ | ____ | ____ | ____ | ____ | ____ |
+		2 | 0  |    | 1  |    | 2  |    | 3  |    |
+		|____ | ____ | ____ | ____ | ____ | ____ | ____ | ____ |
+		3	|    | 0  |    | 1  |    | 2  |    | 3  |
+		|____ | ____ | ____ | ____ | ____ | ____ | ____ | ____ |
+		4 | 0  |    | 1  |    | 2  |    | 3  |    |
+		|____ | ____ | ____ | ____ | ____ | ____ | ____ | ____ |
+		5	|    | 0  |    | 1  |    | 2  |    | 3  |
+		|____ | ____ | ____ | ____ | ____ | ____ | ____ | ____ |
+		6 | 0  |    | 1  |    | 2  |    | 3  |    |
+		|____ | ____ | ____ | ____ | ____ | ____ | ____ | ____ |
+		7	|    | 0  |    | 1  |    | 2  |    | 3  |
+		|____ | ____ | ____ | ____ | ____ | ____ | ____ | ____ |")
+		std::cout << "Checkers:";
+		
 	std::cout << "Enter your username. \n";
 	char username[500];
 		std::cin.getline(username, 500);
@@ -360,31 +381,6 @@ int main(int const argc, char const* const argv[])
 			lastInputTimecode = (int)time;
 		}
 
-		////this pauses the program rather than allowing it to refresh automatically
-		////so its a temporary solution, idk how else to do it for now
-		//std::cout << "Press Enter to refresh, or type a message to send to the server.\n";
-		//char input[500];
-		////RakNet::RakString input;
-		//std::cin.getline(input, 500);
-		//if (input[0] != '/')
-		//{
-		//	packet = peer->Receive();
-		//	peer->DeallocatePacket(packet);
-		//	//packet = peer->Receive();
-		//	//RakNet::StringCompressor sc;
-		//	RakNet::BitStream bsOutMessage;
-		//	RakNet::BitStream bsOutTimestamp;
-		//	RakNet::Time timestamp = RakNet::GetTime();
-
-
-		//	//sc.EncodeString
-		//	bsOutMessage.Write((RakNet::MessageID)ID_TIMESTAMP);
-		//	bsOutMessage.Write(timestamp);
-		//	bsOutMessage.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
-		//	bsOutMessage.Write(input);
-
-		//	peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
-		//}
 
 	}
 
