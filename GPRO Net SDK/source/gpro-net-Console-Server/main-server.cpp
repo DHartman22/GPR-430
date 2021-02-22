@@ -42,6 +42,7 @@
 #include <iostream>
 #include <fstream>
 #include <unordered_map>
+#include "gpro-net/gpro-net-common/gpro-net-room.h"
 
 using namespace RakNet;
 #define MAX_CLIENTS 10
@@ -49,36 +50,18 @@ using namespace RakNet;
 
 //IP, Username
 std::unordered_map<std::string, std::string> ipUsernames;
+Room roomList [5] = { Room(0), Room(1), Room(2), Room(3), Room(4) };
 
-enum GameMessages
+
+
+struct roomStruct
 {
-	ID_GAME_MESSAGE_1 = ID_USER_PACKET_ENUM + 1
+	int roomIndex; //0 = main lobby
+	std::unordered_map<std::string, std::string> ipUsernamesInRoom;
+	int currentUsers = 0;
+	int maxUsers = 10;
 };
 
-enum UsernameMessage
-{
-	ID_NEW_USER_JOINED = ID_GAME_MESSAGE_1 + 1
-};
-
-enum ServerMessage //A message sent from the server to the client privately, such as a user list
-{
-	ID_SERVER_MESSAGE = ID_NEW_USER_JOINED + 1
-};
-
-enum PrivateMessage //a message sent from another user only for a specific client
-{
-	ID_PRIVATE_MESSAGE = ID_SERVER_MESSAGE + 1
-};
-
-enum DisconnectMessage //sends when client is shut down
-{
-	ID_DISCONNECT_EVENT = ID_PRIVATE_MESSAGE + 1
-};
-
-enum DeclineJoinEvent //Turns away users who already have an identical ip connected
-{
-	ID_DECLINE_JOIN = ID_DISCONNECT_EVENT + 1
-};
 
 void logEventUserMessage(int timestamp, std::string message, std::string username)
 {
@@ -109,6 +92,7 @@ void logEvent(int timestamp, std::string rawMessage)
 void disconnect(std::string ip)
 {
 	ipUsernames.erase(ip); //removes user from active users list
+	
 }
 
 void returnUsers(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
@@ -140,6 +124,7 @@ int main(int const argc, char const* const argv[])
 	RakNet::RakPeerInterface* peer = RakNet::RakPeerInterface::GetInstance();
 	bool isServer;
 	
+	//roomStruct[5];
 	SocketDescriptor sd(SERVER_PORT, 0);
 	peer->Startup(MAX_CLIENTS, &sd, 1);
 	isServer = true;
@@ -353,6 +338,16 @@ int main(int const argc, char const* const argv[])
 				std::cout << consoleOutput;
 				logEvent((int)GetTimeMS(), consoleOutput);
 				disconnect(ip);
+			}
+			break;
+			case ID_REQUEST_ROOM_USER_LIST:
+			{
+				roomList[1].sendUserList(packet->systemAddress.ToString(true), peer, packet);
+			}
+			break;
+			case ID_ROOM_JOIN:
+			{
+				roomList[1].addUser(packet->systemAddress.ToString(true), ipUsernames.at(packet->systemAddress.ToString(true)), peer, packet);
 			}
 			break;
 			default:

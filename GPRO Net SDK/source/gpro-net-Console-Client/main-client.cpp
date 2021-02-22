@@ -24,64 +24,29 @@
 
 //using namespace RakNet;
 
-#include "gpro-net/gpro-net.h"
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-
-
-//using namespace RakNet;
+#include "gpro-net/gpro-net.h"
 
 #include "Raknet/MessageIdentifiers.h"
+
 #include "RakNet/RakPeerInterface.h"
-#include "RakNet/RakNetSocket.h"
 #include "RakNet/SocketIncludes.h"
+#include "RakNet/RakNetSocket.h"
 #include "RakNet/BitStream.h"
 #include "RakNet/RakNetTypes.h"  // MessageID
 #include "RakNet/GetTime.h"
-#include "RakNet/StringCompressor.h"
-#include "gpro-net/gpro-net-common/gpro-net-console.h"
-#include "gpro-net/gpro-net-common/gpro-net-gamestate.h"
+#include <string>
 #include <iostream>
 #include <fstream>
-#include <string>
+#include <unordered_map>
 
 #define MAX_CLIENTS 10
 #define SERVER_PORT 7777
-#define SERVER_IP "172.16.2.57"
+#define SERVER_IP "172.16.2.60"
 
-enum GameMessages
-{
-	ID_GAME_MESSAGE_1 = ID_USER_PACKET_ENUM + 1
-};
 
-enum UsernameMessage
-{
-	ID_NEW_USER_JOINED = ID_GAME_MESSAGE_1 + 1
-};
-
-enum ServerMessage //A message sent from the server to the client privately
-{
-	ID_SERVER_MESSAGE = ID_NEW_USER_JOINED + 1
-};
-
-enum PrivateMessage //a message sent from another user only for a specific client
-{
-	ID_PRIVATE_MESSAGE = ID_SERVER_MESSAGE + 1
-};
-
-enum DisconnectMessage //sends when client is shut down
-{
-	ID_DISCONNECT_EVENT = ID_PRIVATE_MESSAGE + 1
-};
-
-enum DeclineJoinEvent //Turns away users who already have an identical ip connected
-{
-	ID_DECLINE_JOIN = ID_DISCONNECT_EVENT + 1
-};
 
 void inputPrivate(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 {
@@ -182,10 +147,12 @@ void input(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 	}
 	else
 	{
-		std::cout << "Options: 1) Ask for list of active users 2) Send a Private Message 3) Go Back \n";
+		std::cout << "Options: 1) Ask for list of active users 2) Send a Private Message 3) Join Room 4) Go Back 5) Get active users in your room \n";
 		int input2;
 		std::cin >> input2;
 		RakNet::BitStream bsQueryUserList; //doesnt like this declaration in the switch
+		RakNet::BitStream joinRoomRequest; //doesnt like this declaration in the switch
+
 		switch (input2)
 		{
 		case 1:
@@ -196,7 +163,19 @@ void input(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 			inputPrivate(peer, packet);
 			break;
 		case 3:
+			joinRoomRequest.Write((RakNet::MessageID)ID_ROOM_JOIN);
+			joinRoomRequest.Write(1);
+			peer->Send(&joinRoomRequest, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress(SERVER_IP, 7777), false);
+			printf("Joining Room 1...");
+			break;
+		case 4:
+			
 			//nothing, if possible return
+			break;
+		case 5:
+			joinRoomRequest.Write((RakNet::MessageID)ID_REQUEST_ROOM_USER_LIST);
+			joinRoomRequest.Write(1);
+			peer->Send(&joinRoomRequest, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress(SERVER_IP, 7777), false);
 			break;
 		default:
 			printf("Input was not valid... Try again.");
@@ -230,25 +209,6 @@ int main(int const argc, char const* const argv[])
 	
 	printf("Starting the client.\n");
 	peer->Connect(SERVER_IP, SERVER_PORT, 0, 0);
-	gpro_consoleDrawTestPatch();
-	gpro_consolePrintDebug("[8]\n_______________________________________
-		0 | 0  |    | 1  |    | 2  |    | 3  |    |[4]
-		| ____ | ____ | ____ | ____ | ____ | ____ | ____ | ____ |
-		1	|    | 0  |    | 1  |    | 2  |    | 3  |
-		|____ | ____ | ____ | ____ | ____ | ____ | ____ | ____ |
-		2 | 0  |    | 1  |    | 2  |    | 3  |    |
-		|____ | ____ | ____ | ____ | ____ | ____ | ____ | ____ |
-		3	|    | 0  |    | 1  |    | 2  |    | 3  |
-		|____ | ____ | ____ | ____ | ____ | ____ | ____ | ____ |
-		4 | 0  |    | 1  |    | 2  |    | 3  |    |
-		|____ | ____ | ____ | ____ | ____ | ____ | ____ | ____ |
-		5	|    | 0  |    | 1  |    | 2  |    | 3  |
-		|____ | ____ | ____ | ____ | ____ | ____ | ____ | ____ |
-		6 | 0  |    | 1  |    | 2  |    | 3  |    |
-		|____ | ____ | ____ | ____ | ____ | ____ | ____ | ____ |
-		7	|    | 0  |    | 1  |    | 2  |    | 3  |
-		|____ | ____ | ____ | ____ | ____ | ____ | ____ | ____ |")
-		std::cout << "Checkers:";
 		
 	std::cout << "Enter your username. \n";
 	char username[500];
