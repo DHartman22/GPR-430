@@ -95,12 +95,9 @@ bool findUserToRemoveFromRoom(string ip)
 {
 	for (int i = 0; i < 5; i++)
 	{
-		for (int j = 0; j < roomList[i].getCurrentUsers(); j++)
+		if (roomList[i].removeUserFromRoom(ip))
 		{
-			if (roomList[i].removeUserFromRoom(ip))
-			{
-				return true;
-			}
+			return true;
 		}
 	}
 	return false;
@@ -137,6 +134,32 @@ void returnUsers(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 	while(it != ipUsernames.end())
 	{
 		output.append(it->second + "\n");
+		it++;
+	}
+
+	std::cout << output;
+	rs = output.c_str();
+
+	RakNet::BitStream bsOutUsers;
+	bsOutUsers.Write((RakNet::MessageID)ID_SERVER_MESSAGE);
+	bsOutUsers.Write(rs);
+	peer->Send(&bsOutUsers, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
+
+}
+
+void returnUsersInLobby(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
+{
+	RakNet::RakString rs;
+	std::string output = "\nUsers currently connected:\n";
+
+
+	std::unordered_map<std::string, std::string>::iterator it = ipUsernames.begin();
+	while (it != ipUsernames.end())
+	{
+		if (isUserInRoom(it->first) == -1)
+		{
+			output.append(it->second + "\n");
+		}
 		it++;
 	}
 
@@ -221,7 +244,9 @@ int main(int const argc, char const* const argv[])
 				std::cout << time;
 				printf(" | ");
 
-				std::cout << "[" << ipUsernames.find(ip)->second << "]: ";
+				cout << "[Room " << to_string(isUserInRoom(packet->systemAddress.ToString(true))) << "] ";
+
+				cout << "[" << ipUsernames.find(ip)->second << "]: ";
 				printf("%s\n", rs.C_String());
 
 				logEventUserMessage((int)time, rs.C_String(), ipUsernames.find(ip)->second);
@@ -407,7 +432,48 @@ int main(int const argc, char const* const argv[])
 				int roomToJoin;
 				bsIn.Read(roomToJoin);
 
-				roomList[roomToJoin].addUser(packet->systemAddress.ToString(true), ipUsernames.at(packet->systemAddress.ToString(true)), peer, packet);
+				int currentRoom = isUserInRoom(packet->systemAddress.ToString(true));
+				if (currentRoom != -1)
+				{
+					BitStream bsOut;
+					string warningString = "WARNING: You're already in Room " + to_string(currentRoom) + ".\n If you want to join another room, leave this room first by entering [/] followed by [6]";
+					RakString warningRakString = warningString.c_str();
+					bsOut.Write((MessageID)ID_SERVER_MESSAGE);
+					bsOut.Write(warningRakString);
+					peer->Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
+				}
+				else
+				{
+					roomList[roomToJoin].addUser(packet->systemAddress.ToString(true), ipUsernames.at(packet->systemAddress.ToString(true)), peer, packet);
+
+				}
+
+
+			}
+			break;
+			case ID_LEAVE_ROOM_REQUEST: 
+			{
+				bool success = findUserToRemoveFromRoom(packet->systemAddress.ToString(true));
+
+				if (success)
+				{
+					BitStream bsOut;
+					string warningString = "Welcome back to the lobby!";
+					RakString warningRakString = warningString.c_str();
+					bsOut.Write((MessageID)ID_SERVER_MESSAGE);
+					bsOut.Write(warningRakString);
+					peer->Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
+				}
+				else
+				{
+					BitStream bsOut;
+					string warningString = "You're already in the lobby.";
+					RakString warningRakString = warningString.c_str();
+					bsOut.Write((MessageID)ID_SERVER_MESSAGE);
+					bsOut.Write(warningRakString);
+					peer->Send(&bsOut, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
+				}
+				
 			}
 			break;
 			default:

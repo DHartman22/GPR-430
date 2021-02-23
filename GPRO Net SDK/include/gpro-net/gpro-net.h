@@ -68,6 +68,13 @@ enum RequestRoomUserList
 	ID_REQUEST_ROOM_USER_LIST = ID_ROOM_JOIN + 1
 };
 
+enum LeaveRoomRequest
+{
+	ID_LEAVE_ROOM_REQUEST = ID_REQUEST_ROOM_USER_LIST + 1
+};
+
+
+
 
 
 #endif	// !_GPRO_NET_H_

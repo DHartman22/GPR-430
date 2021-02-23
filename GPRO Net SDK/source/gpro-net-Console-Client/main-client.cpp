@@ -28,6 +28,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "gpro-net/gpro-net.h"
+#include <future>
+
 
 #include "Raknet/MessageIdentifiers.h"
 
@@ -44,7 +46,7 @@
 
 #define MAX_CLIENTS 10
 #define SERVER_PORT 7777
-#define SERVER_IP "172.16.2.56"
+#define SERVER_IP "172.16.2.60"
 
 
 using namespace std;
@@ -120,6 +122,7 @@ void logEvent()
 void input(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 {
 	std::cout << "Type a message... or send a [/] without brackets for more options.\n";
+	
 	char input[500];
 	input[0] = '\0';
 	//RakNet::RakString input;
@@ -144,22 +147,21 @@ void input(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 		bsOutMessage.Write(timestamp);
 		if (input[0] != '\0')
 		{
-			peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress(SERVER_IP, 7777), false);
+			peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress(SERVER_IP, SERVER_PORT), false);
 		}
 	}
 	else
 	{
-		std::cout << "Options: 1) Ask for list of active users 2) Send a Private Message 3) Join Room 4) Go Back 5) Get active users in your room \n";
+		std::cout << "Options: 1) Ask for list of active users 2) Send a Private Message 3) Join Room 4) Go Back 5) Get active users in your room 6) Return to the main lobby \n";
 		int input2;
 		std::cin >> input2;
-		RakNet::BitStream bsQueryUserList; //doesnt like this declaration in the switch
-		RakNet::BitStream joinRoomRequest; //doesnt like this declaration in the switch
+		RakNet::BitStream inputBitStream; //doesnt like this declaration in the switch
 
 		switch (input2)
 		{
 		case 1:
-			bsQueryUserList.Write((RakNet::MessageID)ID_SERVER_MESSAGE);
-			peer->Send(&bsQueryUserList, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress(SERVER_IP, 7777), false);
+			inputBitStream.Write((RakNet::MessageID)ID_SERVER_MESSAGE);
+			peer->Send(&inputBitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress(SERVER_IP, SERVER_PORT), false);
 			break;
 		case 2:
 			inputPrivate(peer, packet);
@@ -167,19 +169,20 @@ void input(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 		case 3:
 
 			int inputRoom;
+			cout << "Choose a room ID to join: [1], [2], [3], [4], or [5]. Type [-1] to go back.\n";
 			cin >> inputRoom;
 			while(inputRoom > 5 || inputRoom < 0)
 			{
 				if (inputRoom == -1)
 				{
-					break;
+					return;
 				}
 				cout << "\nRoom index out of range. Eligible rooms are 1-5. Type -1 to return.\n";
 				cin >> inputRoom;
 			}
-			joinRoomRequest.Write((RakNet::MessageID)ID_ROOM_JOIN);
-			joinRoomRequest.Write(inputRoom);
-			peer->Send(&joinRoomRequest, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress(SERVER_IP, 7777), false);
+			inputBitStream.Write((RakNet::MessageID)ID_ROOM_JOIN);
+			inputBitStream.Write(inputRoom);
+			peer->Send(&inputBitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress(SERVER_IP, 7777), false);
 			cout << "Joining Room " + to_string(inputRoom) + "...\n";
 			break;
 		case 4:
@@ -187,9 +190,14 @@ void input(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 			//nothing, if possible return
 			break;
 		case 5:
-			joinRoomRequest.Write((RakNet::MessageID)ID_REQUEST_ROOM_USER_LIST);
-			joinRoomRequest.Write(1);
-			peer->Send(&joinRoomRequest, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress(SERVER_IP, 7777), false);
+			inputBitStream.Write((RakNet::MessageID)ID_REQUEST_ROOM_USER_LIST);
+			inputBitStream.Write(1);
+			peer->Send(&inputBitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress(SERVER_IP, 7777), false);
+			break;
+		case 6:
+			inputBitStream.Write((RakNet::MessageID)ID_LEAVE_ROOM_REQUEST);
+			peer->Send(&inputBitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress(SERVER_IP, 7777), false);
+
 			break;
 		default:
 			printf("Input was not valid... Try again.");
@@ -235,123 +243,129 @@ int main(int const argc, char const* const argv[])
 	
 	while (1)
 	{
-		for (packet = peer->Receive(); packet; peer->DeallocatePacket(packet), packet = peer->Receive())
-		{
-			switch (packet->data[0])
+		//https://stackoverflow.com/questions/26127073/user-input-without-pausing-code-c-console-application
+		//this showed me how to use async/future
+		std::future<void> fut = std::async(std::launch::async, input, peer, packet);
+
+		while (fut.wait_for(0.25s) != std::future_status::ready) {
+			for (packet = peer->Receive(); packet; peer->DeallocatePacket(packet), packet = peer->Receive())
 			{
-			case ID_REMOTE_DISCONNECTION_NOTIFICATION:
-				printf("Another client has disconnected.\n");
-				break;
-			case ID_REMOTE_CONNECTION_LOST:
-				printf("Another client has lost the connection.\n");
-				break;
-			case ID_REMOTE_NEW_INCOMING_CONNECTION:
-				printf("Another client has connected.\n");
-				break;
-			case ID_CONNECTION_REQUEST_ACCEPTED:
-			{
-				printf("Our connection request has been accepted.\n");
+				switch (packet->data[0])
+				{
+				case ID_REMOTE_DISCONNECTION_NOTIFICATION:
+					printf("Another client has disconnected.\n");
+					break;
+				case ID_REMOTE_CONNECTION_LOST:
+					printf("Another client has lost the connection.\n");
+					break;
+				case ID_REMOTE_NEW_INCOMING_CONNECTION:
+					printf("Another client has connected.\n");
+					break;
+				case ID_CONNECTION_REQUEST_ACCEPTED:
+				{
+					printf("Our connection request has been accepted.\n");
 
 
-				canInput = true;
-				// Use a BitStream to write a custom user message
-				// Bitstreams are easier to use than sending casted structures, and handle endian swapping automatically
-				RakNet::BitStream bsOutTime;
-				RakNet::BitStream bsOutMessage;
+					canInput = true;
+					// Use a BitStream to write a custom user message
+					// Bitstreams are easier to use than sending casted structures, and handle endian swapping automatically
+					RakNet::BitStream bsOutTime;
+					RakNet::BitStream bsOutMessage;
 
-				//RakNet::MessageID useTimeStamp;
-				RakNet::Time timeStamp;
-				timeStamp = RakNet::GetTime();
-				//unsigned char useTimeStamp;
-				bsOutMessage.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
-				bsOutMessage.Write("New user connected: " + rsUsername);
-				
-				bsOutTime.Write((RakNet::MessageID)ID_TIMESTAMP);
-				bsOutTime.Write(timeStamp);
+					//RakNet::MessageID useTimeStamp;
+					RakNet::Time timeStamp;
+					timeStamp = RakNet::GetTime();
+					//unsigned char useTimeStamp;
+					bsOutMessage.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
+					bsOutMessage.Write("New user connected: " + rsUsername);
 
-				peer->Send(&bsOutUsername, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
-				//peer->Send(&bsOutTime, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
-				//peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
-			}
+					bsOutTime.Write((RakNet::MessageID)ID_TIMESTAMP);
+					bsOutTime.Write(timeStamp);
+
+					peer->Send(&bsOutUsername, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
+					//peer->Send(&bsOutTime, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
+					//peer->Send(&bsOutMessage, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
+				}
 				break;
-			case ID_NEW_INCOMING_CONNECTION:
-				printf("A connection is incoming.\n");
-				break;
-			case ID_NO_FREE_INCOMING_CONNECTIONS:
-				printf("The server is full.\n");
-				break;
-			case ID_DISCONNECTION_NOTIFICATION:
+				case ID_NEW_INCOMING_CONNECTION:
+					printf("A connection is incoming.\n");
+					break;
+				case ID_NO_FREE_INCOMING_CONNECTIONS:
+					printf("The server is full.\n");
+					break;
+				case ID_DISCONNECTION_NOTIFICATION:
 					printf("We have been disconnected.\n");
-				break;
-			case ID_CONNECTION_LOST:
+					break;
+				case ID_CONNECTION_LOST:
 					printf("Connection lost.\n");
-				break;
-			case ID_GAME_MESSAGE_1:
-			{
+					break;
+				case ID_GAME_MESSAGE_1:
+				{
 					RakNet::RakString rs;
 					RakNet::BitStream bsIn(packet->data, packet->length, false);
 					bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
 					bsIn.Read(rs);
 					printf("%s\n", rs.C_String());
-			}
+				}
 				break;
-			case ID_CONNECTION_ATTEMPT_FAILED:
+				case ID_CONNECTION_ATTEMPT_FAILED:
 					printf("Connection attempt failed.\n");
 					return 0;
+					break;
+				case ID_SERVER_MESSAGE:
+				{
+					RakNet::RakString rs;
+					RakNet::BitStream bsIn(packet->data, packet->length, false);
+					bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
+					bsIn.Read(rs);
+					printf("%s\n", rs.C_String());
+				}
 				break;
-			case ID_SERVER_MESSAGE:
-			{
-				RakNet::RakString rs;
-				RakNet::BitStream bsIn(packet->data, packet->length, false);
-				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
-				bsIn.Read(rs);
-				printf("%s\n", rs.C_String());
-			}
+				case ID_PRIVATE_MESSAGE:
+				{
+					RakNet::RakString rsUsername;
+					RakNet::RakString rsMessage;
+					RakNet::Time timestamp;
+
+					RakNet::BitStream bsIn(packet->data, packet->length, false);
+					bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
+					bsIn.Read(rsUsername);
+					bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
+					bsIn.Read(rsMessage);
+					bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
+					bsIn.Read(timestamp);
+
+					std::string broadcastMessage = "";
+					broadcastMessage += std::to_string((int)timestamp);
+					broadcastMessage += +" | [";
+					broadcastMessage += rsUsername.C_String();
+					broadcastMessage += +"]: ";
+					broadcastMessage += rsMessage.C_String();
+
+					std::cout << broadcastMessage << std::endl;
+
+
+				}
 				break;
-			case ID_PRIVATE_MESSAGE:
-			{
-				RakNet::RakString rsUsername;
-				RakNet::RakString rsMessage;
-				RakNet::Time timestamp;
+				case ID_DECLINE_JOIN:
+				{
+					std::cout << "This address is already connected to the server.\n";
+					return 0;
+				}
+				default:
+					printf("Message with identifier %i has arrived.\n", packet->data[0]);
+					break;
+				}
 
-				RakNet::BitStream bsIn(packet->data, packet->length, false);
-				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
-				bsIn.Read(rsUsername);
-				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
-				bsIn.Read(rsMessage);
-				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
-				bsIn.Read(timestamp);
 
-				std::string broadcastMessage = "";
-				broadcastMessage += std::to_string((int)timestamp);
-				broadcastMessage += +" | ["; 
-				broadcastMessage += rsUsername.C_String();
-				broadcastMessage +=	+"]: ";
-				broadcastMessage += rsMessage.C_String();
-
-				std::cout << broadcastMessage << std::endl;
-
-				
 			}
-			break;
-			case ID_DECLINE_JOIN:
-			{
-				std::cout << "This address is already connected to the server.\n";
-				return 0;
-			}
-			default:
-				printf("Message with identifier %i has arrived.\n", packet->data[0]);
-				break;
-			}
-
-			
 		}
 
 		RakNet::TimeMS time = RakNet::GetTimeMS();
 		if ((int)time - lastInputTimecode > timecodeRequirement && canInput)
 		{
-			input(peer, packet);
-			lastInputTimecode = (int)time;
+		//	input(peer, packet);
+			//lastInputTimecode = (int)time;
 		}
 
 
