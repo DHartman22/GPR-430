@@ -50,6 +50,8 @@ using namespace RakNet;
 
 //IP, Username
 std::unordered_map<std::string, std::string> ipUsernames;
+std::unordered_map<std::string, int> ipRoomIndexes;
+
 Room roomList [5] = { Room(0), Room(1), Room(2), Room(3), Room(4) };
 
 
@@ -63,9 +65,9 @@ struct roomStruct
 };
 
 
-void logEventUserMessage(int timestamp, std::string message, std::string username)
+void logEventUserMessage(int timestamp, string message, string username)
 {
-	std::ofstream file;
+	ofstream file;
 	file.open("log.txt", std::ios::app);
 
 	if (file.is_open())
@@ -76,9 +78,9 @@ void logEventUserMessage(int timestamp, std::string message, std::string usernam
 	file.close();
 }
 
-void logEvent(int timestamp, std::string rawMessage)
+void logEvent(int timestamp, string rawMessage)
 {
-	std::ofstream file;
+	ofstream file;
 	file.open("log.txt", std::ios::app);
 
 	if (file.is_open())
@@ -89,10 +91,40 @@ void logEvent(int timestamp, std::string rawMessage)
 	file.close();
 }
 
-void disconnect(std::string ip)
+bool findUserToRemoveFromRoom(string ip)
+{
+	for (int i = 0; i < 5; i++)
+	{
+		for (int j = 0; j < roomList[i].getCurrentUsers(); j++)
+		{
+			if (roomList[i].removeUserFromRoom(ip))
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+int isUserInRoom(string ip)
+{
+	for (int i = 0; i < 5; i++)
+	{
+		for (int j = 0; j < roomList[i].getCurrentUsers(); j++)
+		{
+			if (roomList[i].isUserInRoom(ip))
+			{
+				return roomList[i].getRoomID();
+			}
+		}
+	}
+	return -1;
+}
+
+void disconnect(string ip)
 {
 	ipUsernames.erase(ip); //removes user from active users list
-	
+	findUserToRemoveFromRoom(ip);
 }
 
 void returnUsers(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
@@ -117,6 +149,7 @@ void returnUsers(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 	peer->Send(&bsOutUsers, HIGH_PRIORITY, RELIABLE_ORDERED, 0, packet->systemAddress, false);
 
 }
+
 
 int main(int const argc, char const* const argv[])
 {
@@ -173,17 +206,12 @@ int main(int const argc, char const* const argv[])
 				bsIn.Read(rs);
 				//const char * a = packet->systemAddress.ToString(false);	
 				
-				//printf("Message from " + packet->systemAddress);
-
-				std::string ip = packet->systemAddress.ToString(true);
-
-				//printf("%" PRINTF_64_BIT_MODIFIER "u ", packet->systemAddress);
-
+				string ip = packet->systemAddress.ToString(true);
+				
 				RakNet::Time time;
 
 				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
 				bsIn.Read(time);
-				//time /= 1000;
 
 				std::string broadcastMessage = "";
 				broadcastMessage += std::to_string((int)time);
@@ -191,7 +219,6 @@ int main(int const argc, char const* const argv[])
 				broadcastMessage += rs.C_String();
 
 				std::cout << time;
-				//printf("%" PRINTF_64_BIT_MODIFIER "u ", time);
 				printf(" | ");
 
 				std::cout << "[" << ipUsernames.find(ip)->second << "]: ";
@@ -204,7 +231,29 @@ int main(int const argc, char const* const argv[])
 				RakNet::BitStream bsBroadcast;
 				bsBroadcast.Write((RakNet::MessageID)ID_SERVER_MESSAGE);
 				bsBroadcast.Write(output);
-				peer->Send(&bsBroadcast, HIGH_PRIORITY, RELIABLE_ORDERED, 1, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
+				int roomIndexOfUser = isUserInRoom(ip);
+				if (roomIndexOfUser != -1)
+				{
+					roomList[roomIndexOfUser].sendMessageToRoom(broadcastMessage, ip, peer, packet);
+				}
+				else
+				{
+					std::unordered_map<std::string, std::string>::iterator it = ipUsernames.begin();
+					while (it != ipUsernames.end()) // prevents users in rooms from receiving main lobby messages
+					{
+						if (isUserInRoom(it->first) == -1) 
+						{
+							string currentIp = it->first;
+							std::size_t position = currentIp.find("|");
+
+							std::string port = currentIp.substr(position + 1);
+
+							SystemAddress recipient = SystemAddress(currentIp.c_str(), stoi(port));
+							peer->Send(&bsBroadcast, HIGH_PRIORITY, RELIABLE_ORDERED, 0, recipient, false);
+						}
+						it++;
+					}
+				}
 
 			}
 			break;
@@ -248,6 +297,8 @@ int main(int const argc, char const* const argv[])
 					BitStream bsOutBroadcast;
 					bsOutBroadcast.Write((RakNet::MessageID)ID_SERVER_MESSAGE);
 					bsOutBroadcast.Write(broadcast);
+
+
 					peer->Send(&bsOutBroadcast, HIGH_PRIORITY, RELIABLE_ORDERED, 1, RakNet::UNASSIGNED_SYSTEM_ADDRESS, true);
 			}
 			break;
@@ -315,8 +366,6 @@ int main(int const argc, char const* const argv[])
 					{
 						std::cout << "Unable to find user to send message.\n";
 					}
-
-
 			}
 			break;
 			case ID_SERVER_MESSAGE:
@@ -342,12 +391,23 @@ int main(int const argc, char const* const argv[])
 			break;
 			case ID_REQUEST_ROOM_USER_LIST:
 			{
-				roomList[1].sendUserList(packet->systemAddress.ToString(true), peer, packet);
+				BitStream bsIn(packet->data, packet->length, false);
+				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
+
+				int room;
+				bsIn.Read(room);
+				roomList[room].sendUserList(packet->systemAddress.ToString(true), peer, packet);
 			}
 			break;
 			case ID_ROOM_JOIN:
 			{
-				roomList[1].addUser(packet->systemAddress.ToString(true), ipUsernames.at(packet->systemAddress.ToString(true)), peer, packet);
+				BitStream bsIn(packet->data, packet->length, false);
+				bsIn.IgnoreBytes(sizeof(RakNet::MessageID));
+
+				int roomToJoin;
+				bsIn.Read(roomToJoin);
+
+				roomList[roomToJoin].addUser(packet->systemAddress.ToString(true), ipUsernames.at(packet->systemAddress.ToString(true)), peer, packet);
 			}
 			break;
 			default:

@@ -44,9 +44,11 @@
 
 #define MAX_CLIENTS 10
 #define SERVER_PORT 7777
-#define SERVER_IP "172.16.2.60"
+#define SERVER_IP "172.16.2.56"
 
 
+using namespace std;
+using namespace RakNet;
 
 void inputPrivate(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 {
@@ -163,10 +165,22 @@ void input(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 			inputPrivate(peer, packet);
 			break;
 		case 3:
+
+			int inputRoom;
+			cin >> inputRoom;
+			while(inputRoom > 5 || inputRoom < 0)
+			{
+				if (inputRoom == -1)
+				{
+					break;
+				}
+				cout << "\nRoom index out of range. Eligible rooms are 1-5. Type -1 to return.\n";
+				cin >> inputRoom;
+			}
 			joinRoomRequest.Write((RakNet::MessageID)ID_ROOM_JOIN);
-			joinRoomRequest.Write(1);
+			joinRoomRequest.Write(inputRoom);
 			peer->Send(&joinRoomRequest, HIGH_PRIORITY, RELIABLE_ORDERED, 0, RakNet::SystemAddress(SERVER_IP, 7777), false);
-			printf("Joining Room 1...");
+			cout << "Joining Room " + to_string(inputRoom) + "...\n";
 			break;
 		case 4:
 			
@@ -187,8 +201,7 @@ void input(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 int main(int const argc, char const* const argv[])
 {
 	logEvent();
-	int loopsNeeded = 5000000;
-	int currentLoopCycle = 0;
+
 
 	int lastInputTimecode = 1000;
 	int timecodeRequirement = 1000;

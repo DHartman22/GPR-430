@@ -23,6 +23,9 @@ using namespace std;
 class Room {
 
 private:
+	RakNet::RakPeerInterface* mPeer;
+	string p1IP;
+	string p2IP;
 	int roomID;
 	std::unordered_map<std::string, std::string> ipUsernamesInRoom;
 	int currentUsers = 0;
@@ -30,8 +33,16 @@ private:
 
 public:
 	Room(int id);
+	~Room() { mPeer = nullptr; }
+	bool removeUserFromRoom(string ipToCompare); //returns true on success
+	bool isUserInRoom(string ipToCompare);
+	int getRoomID() { return roomID; }
 	int getCurrentUsers() { return currentUsers; }
 	void addUser(string ip, string username, RakNet::RakPeerInterface* peer, RakNet::Packet* packet);
-	void sendMessageToRoom(string message, string senderIp, string senderUsername, RakNet::RakPeerInterface* peer, RakNet::Packet* packet);
+	void bindUserToPlayerIP(string ip);
+	void sendMessageToRoom(string message, string senderIp, RakNet::RakPeerInterface* peer, RakNet::Packet* packet);
+	void sendMessageToOpponent(string message, string senderIp, RakNet::RakPeerInterface* peer, RakNet::Packet* packet);
 	void sendUserList(string ip, RakNet::RakPeerInterface* peer, RakNet::Packet* packet);
+	void sendBoardsToSpectators(); //empty until game is done
+
 };
