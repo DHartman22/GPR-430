@@ -28,6 +28,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "gpro-net/gpro-net.h"
+#include "gpro-net/gpro-net-common/gpro-net-gamestate.h"
+#include "gpro-net/gpro-net-common/gpro-net-console.h"
+#include "gpro-net/gpro-net-common/gpro-net-room.h"
 #include <future>
 
 
@@ -51,6 +54,52 @@
 
 using namespace std;
 using namespace RakNet;
+
+enum boardLHS
+{
+	A = 1,
+	B,
+	C,
+	D,
+	E,
+	F,
+	G,
+	H,
+	I,
+	J
+};
+
+class Battleship
+{
+public:
+	Battleship();
+	~Battleship();
+
+	void init();
+	void setShips();
+
+	void input();
+	void update();
+	void display();
+
+	void checkState();
+	void gameEnd(); //check current turn to see who won
+
+	void setTurn();
+private:
+	gpro_battleship mBoard;
+	bool mCurrentTurn;
+	bool mGameOver;
+};
+
+class BaseMessageClass
+{
+public:
+	virtual BitStream& operator >> (BitStream& in) = 0; //read
+	virtual BitStream& operator << (BitStream& out) = 0; //write
+protected:
+	NetworkID mNetID;
+};
 
 void inputPrivate(RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
 {
@@ -382,4 +431,162 @@ int main(int const argc, char const* const argv[])
 	printf("test message");
 	printf("\n\n");
 	system("pause");
+}
+
+//BATTLESHIP CLASS DEFINITIONS BELOW
+
+Battleship::Battleship()
+{
+	mCurrentTurn = false;
+	mGameOver = false;
+
+	init();
+}
+
+Battleship::~Battleship()
+{
+	//destructor
+}
+
+void Battleship::init()
+{
+	const int BOARD_SIZE = 10;
+
+	for (int i = 0; i < BOARD_SIZE; i++)
+	{
+		for (int j = 0; j < BOARD_SIZE; j++)
+		{
+			mBoard[i][j] = gpro_battleship_open;
+		}
+	}
+}
+
+void Battleship::setShips()
+{
+	std::string response1;
+	std::string response2;
+	std::string response3;
+	std::string response4;
+	std::string response5;
+	
+	std::string delimiter = ",";
+	std::string letter, number;
+	int iletter, inumber;
+	bool horizontal = false;
+
+	//ask user where to put ships
+	cout << "Where would you like to place your Patrol Boat? (2 spaces)" << endl <<
+		"Please use a letter followed by a number, then either 'v' or 'h' for the direction separated by a comma. Example: D4,h" << endl;
+	cin >> response1;
+	//get coords
+	response1.substr(0, std::string::find());
+	if ()
+		iletter = ;
+	mBoard[iletter][inumber] = gpro_battleship_ship_p2;
+	if (horizontal)
+	{
+		mBoard[iletter][inumber+1] = gpro_battleship_ship_p2;
+	}
+	else
+	{
+		mBoard[iletter+1][inumber] = gpro_battleship_ship_p2;
+	}
+
+	cout << "All ships have been placed!" << endl;
+}
+
+void Battleship::input()
+{
+	//get move from user
+	if (mCurrentTurn)
+	{
+
+	}
+	else
+	{
+		//get other player data?
+		cout << "It is not currently your turn..." << endl;
+	}
+
+	setTurn();
+}
+
+void Battleship::update()
+{
+	while (!mGameOver)
+	{
+		input();
+		checkState();
+		display();
+	}
+}
+
+void Battleship::display()
+{
+	//display board
+	const int BOARD_SIZE = 10;
+
+	for (int i = 0; i < BOARD_SIZE; i++)
+	{
+		for (int j = 0; j < BOARD_SIZE; j++)
+		{
+			if(mBoard[i][j] == gpro_battleship_open)
+				cout << "|  |";
+			else if (mBoard[i][j] == gpro_battleship_hit)
+				cout << "|o |";
+			else if (mBoard[i][j] == gpro_battleship_miss)
+				cout << "|x |";
+			else if (mBoard[i][j] == gpro_battleship_ship_p2)
+				cout << "|P |";
+			else if (mBoard[i][j] == gpro_battleship_ship_s3)
+				cout << "|S |";
+			else if (mBoard[i][j] == gpro_battleship_ship_d3)
+				cout << "|D |";
+			else if (mBoard[i][j] == gpro_battleship_ship_b4)
+				cout << "|B |";
+			else if (mBoard[i][j] == gpro_battleship_ship_c5)
+				cout << "|C |";
+		}
+		cout << endl;
+	}
+}
+
+void Battleship::checkState()
+{
+	const int BOARD_SIZE = 10;
+	const int WIN_CON = 17;
+	int currentPoints = 0;
+
+	for (int i = 0; i < BOARD_SIZE; i++)
+	{
+		for (int j = 0; j < BOARD_SIZE; j++)
+		{
+			if (mBoard[i][j] == gpro_battleship_hit)
+				currentPoints++;
+		}
+	}
+
+	if (currentPoints == WIN_CON)
+		gameEnd();
+}
+
+void Battleship::gameEnd()
+{
+	mGameOver = true;
+
+	if (mCurrentTurn)
+	{
+		//win
+		cout << "You have Won!" << endl;
+	}
+	else
+	{
+		//loss
+		cout << "You have Lost!" << endl;
+	}
+}
+
+void Battleship::setTurn()
+{
+	mCurrentTurn = !mCurrentTurn;
 }
