@@ -42,7 +42,9 @@ public:
 	void bindUserToPlayerIP(string ip);
 	void sendMessageToRoom(string message, string senderIp, RakNet::RakPeerInterface* peer, RakNet::Packet* packet);
 	void sendMessageToOpponent(string message, string senderIp, RakNet::RakPeerInterface* peer, RakNet::Packet* packet);
+	void sendServerMessageToUser(string message, string recipientIp, RakNet::RakPeerInterface* peer, RakNet::Packet* packet);
+	//void sendGameStateToUser(MessageID id, string recipientIp, )
 	void sendUserList(string ip, RakNet::RakPeerInterface* peer, RakNet::Packet* packet);
-	void sendBoardsToSpectators(); //empty until game is done
+	//void sendBoardsToSpectators(); //empty until game is done
 
 };

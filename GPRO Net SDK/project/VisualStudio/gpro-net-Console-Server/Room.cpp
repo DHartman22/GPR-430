@@ -4,6 +4,7 @@
 #include "..\..\..\include\gpro-net\gpro-net-common\gpro-net-room.h"
 #include "..\..\..\include\gpro-net\gpro-net-common\gpro-net-room.h"
 #include "..\..\..\include\gpro-net\gpro-net-common\gpro-net-room.h"
+#include "..\..\..\include\gpro-net\gpro-net-common\gpro-net-room.h"
 #include "gpro-net/gpro-net-common/gpro-net-room.h"
 
 Room::Room(int id)
@@ -141,6 +142,21 @@ void Room::sendMessageToOpponent(string message, string senderIp, RakNet::RakPee
 		bsOutUsers.Write(output);
 		peer->Send(&bsOutUsers, HIGH_PRIORITY, RELIABLE_ORDERED, 0, recipient, false);
 	}
+}
+
+void Room::sendServerMessageToUser(string message, string recipientIp, RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
+{
+	RakString output = message.c_str();
+	std::size_t position = p2IP.find("|");
+
+	std::string port = p2IP.substr(position + 1);
+
+	SystemAddress recipient = SystemAddress(recipientIp.c_str(), stoi(port));
+
+	RakNet::BitStream bsOutUsers;
+	bsOutUsers.Write((RakNet::MessageID)ID_GAME_MESSAGE_1);
+	bsOutUsers.Write(output);
+	peer->Send(&bsOutUsers, HIGH_PRIORITY, RELIABLE_ORDERED, 0, recipient, false);
 }
 
 void Room::sendUserList(string ip, RakNet::RakPeerInterface* peer, RakNet::Packet* packet)
