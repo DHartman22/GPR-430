@@ -55,20 +55,6 @@
 using namespace std;
 using namespace RakNet;
 
-enum boardLHS
-{
-	A = 1,
-	B,
-	C,
-	D,
-	E,
-	F,
-	G,
-	H,
-	I,
-	J
-};
-
 class Battleship
 {
 public:
@@ -79,6 +65,7 @@ public:
 	void setShips();
 
 	void input();
+	void receiveInput(std::string move);
 	void update();
 	void display();
 
@@ -468,20 +455,73 @@ void Battleship::setShips()
 	std::string response3;
 	std::string response4;
 	std::string response5;
+	const int RESPONSE_LENGTH = 4;
 	
-	std::string delimiter = ",";
-	std::string letter, number;
+	std::string letter, number, orientation;
 	int iletter, inumber;
 	bool horizontal = false;
+
+	//PATROL BOAT
 
 	//ask user where to put ships
 	cout << "Where would you like to place your Patrol Boat? (2 spaces)" << endl <<
 		"Please use a letter followed by a number, then either 'v' or 'h' for the direction separated by a comma. Example: D4,h" << endl;
 	cin >> response1;
+
 	//get coords
-	response1.substr(0, std::string::find());
-	if ()
-		iletter = ;
+	for (int i = 0; i < RESPONSE_LENGTH; i++)
+	{
+		if (i == 1)
+		{
+			letter = response1.substr(response1.find(i));
+
+			if(letter == "A" || letter == "a")
+				iletter = 1;
+			else if (letter == "B" || letter == "b")
+				iletter = 2;
+			else if (letter == "C" || letter == "c")
+				iletter = 3;
+			else if (letter == "D" || letter == "d")
+				iletter = 4;
+			else if (letter == "E" || letter == "e")
+				iletter = 5;
+			else if (letter == "F" || letter == "f")
+				iletter = 6;
+			else if (letter == "G" || letter == "g")
+				iletter = 7;
+			else if (letter == "H" || letter == "h")
+				iletter = 8;
+			else if (letter == "I" || letter == "i")
+				iletter = 9;
+			else if (letter == "J" || letter == "j")
+				iletter = 10;
+			else
+			{
+				cout << "Please enter a valid letter..." << endl;
+			}
+		}
+		else if (i == 2)
+		{
+			number = response1.substr(response1.find(i));
+			inumber = stoi(number);
+			if(inumber > 10)
+				cout << "Please enter a valid number..." << endl;
+		}
+		else if (i == 3)
+		{
+			//ignore
+		}
+		else
+		{
+			orientation = response1.substr(response1.find(i));
+			if (orientation == "h")
+				horizontal = true;
+			else if (orientation == "v")
+				horizontal = false;
+			else
+				cout << "Please enter a valid orientation..." << endl;
+		}
+	}
 	mBoard[iletter][inumber] = gpro_battleship_ship_p2;
 	if (horizontal)
 	{
@@ -490,6 +530,304 @@ void Battleship::setShips()
 	else
 	{
 		mBoard[iletter+1][inumber] = gpro_battleship_ship_p2;
+	}
+
+	//SUBMARINE
+
+	//ask user where to put ships
+	cout << "Where would you like to place your Submarine? (3 spaces)" << endl <<
+		"Please use a letter followed by a number, then either 'v' or 'h' for the direction separated by a comma." << endl;
+	cin >> response2;
+
+	//get coords
+	for (int i = 0; i < RESPONSE_LENGTH; i++)
+	{
+		if (i == 1)
+		{
+			letter = response2.substr(response2.find(i));
+
+			if (letter == "A" || letter == "a")
+				iletter = 1;
+			else if (letter == "B" || letter == "b")
+				iletter = 2;
+			else if (letter == "C" || letter == "c")
+				iletter = 3;
+			else if (letter == "D" || letter == "d")
+				iletter = 4;
+			else if (letter == "E" || letter == "e")
+				iletter = 5;
+			else if (letter == "F" || letter == "f")
+				iletter = 6;
+			else if (letter == "G" || letter == "g")
+				iletter = 7;
+			else if (letter == "H" || letter == "h")
+				iletter = 8;
+			else if (letter == "I" || letter == "i")
+				iletter = 9;
+			else if (letter == "J" || letter == "j")
+				iletter = 10;
+			else
+			{
+				cout << "Please enter a valid letter..." << endl;
+			}
+		}
+		else if (i == 2)
+		{
+			number = response2.substr(response2.find(i));
+			inumber = stoi(number);
+			if (inumber > 10)
+				cout << "Please enter a valid number..." << endl;
+		}
+		else if (i == 3)
+		{
+			//ignore
+		}
+		else
+		{
+			orientation = response2.substr(response2.find(i));
+			if (orientation == "h")
+				horizontal = true;
+			else if (orientation == "v")
+				horizontal = false;
+			else
+				cout << "Please enter a valid orientation..." << endl;
+		}
+	}
+	mBoard[iletter][inumber] = gpro_battleship_ship_s3;
+	if (horizontal)
+	{
+		mBoard[iletter][inumber + 1] = gpro_battleship_ship_s3;
+		mBoard[iletter][inumber + 2] = gpro_battleship_ship_s3;
+	}
+	else
+	{
+		mBoard[iletter + 1][inumber] = gpro_battleship_ship_s3;
+		mBoard[iletter + 2][inumber] = gpro_battleship_ship_s3;
+	}
+
+	//DESTROYER
+
+	//ask user where to put ships
+	cout << "Where would you like to place your Destroyer? (3 spaces)" << endl <<
+		"Please use a letter followed by a number, then either 'v' or 'h' for the direction separated by a comma." << endl;
+	cin >> response3;
+
+	//get coords
+	for (int i = 0; i < RESPONSE_LENGTH; i++)
+	{
+		if (i == 1)
+		{
+			letter = response3.substr(response3.find(i));
+
+			if (letter == "A" || letter == "a")
+				iletter = 1;
+			else if (letter == "B" || letter == "b")
+				iletter = 2;
+			else if (letter == "C" || letter == "c")
+				iletter = 3;
+			else if (letter == "D" || letter == "d")
+				iletter = 4;
+			else if (letter == "E" || letter == "e")
+				iletter = 5;
+			else if (letter == "F" || letter == "f")
+				iletter = 6;
+			else if (letter == "G" || letter == "g")
+				iletter = 7;
+			else if (letter == "H" || letter == "h")
+				iletter = 8;
+			else if (letter == "I" || letter == "i")
+				iletter = 9;
+			else if (letter == "J" || letter == "j")
+				iletter = 10;
+			else
+			{
+				cout << "Please enter a valid letter..." << endl;
+			}
+		}
+		else if (i == 2)
+		{
+			number = response3.substr(response3.find(i));
+			inumber = stoi(number);
+			if (inumber > 10)
+				cout << "Please enter a valid number..." << endl;
+		}
+		else if (i == 3)
+		{
+			//ignore
+		}
+		else
+		{
+			orientation = response3.substr(response3.find(i));
+			if (orientation == "h")
+				horizontal = true;
+			else if (orientation == "v")
+				horizontal = false;
+			else
+				cout << "Please enter a valid orientation..." << endl;
+		}
+	}
+	mBoard[iletter][inumber] = gpro_battleship_ship_d3;
+	if (horizontal)
+	{
+		mBoard[iletter][inumber + 1] = gpro_battleship_ship_d3;
+		mBoard[iletter][inumber + 2] = gpro_battleship_ship_d3;
+	}
+	else
+	{
+		mBoard[iletter + 1][inumber] = gpro_battleship_ship_d3;
+		mBoard[iletter + 2][inumber] = gpro_battleship_ship_d3;
+	}
+
+	//BATTLESHIP
+
+	//ask user where to put ships
+	cout << "Where would you like to place your Battleship? (4 spaces)" << endl <<
+		"Please use a letter followed by a number, then either 'v' or 'h' for the direction separated by a comma." << endl;
+	cin >> response4;
+
+	//get coords
+	for (int i = 0; i < RESPONSE_LENGTH; i++)
+	{
+		if (i == 1)
+		{
+			letter = response4.substr(response4.find(i));
+
+			if (letter == "A" || letter == "a")
+				iletter = 1;
+			else if (letter == "B" || letter == "b")
+				iletter = 2;
+			else if (letter == "C" || letter == "c")
+				iletter = 3;
+			else if (letter == "D" || letter == "d")
+				iletter = 4;
+			else if (letter == "E" || letter == "e")
+				iletter = 5;
+			else if (letter == "F" || letter == "f")
+				iletter = 6;
+			else if (letter == "G" || letter == "g")
+				iletter = 7;
+			else if (letter == "H" || letter == "h")
+				iletter = 8;
+			else if (letter == "I" || letter == "i")
+				iletter = 9;
+			else if (letter == "J" || letter == "j")
+				iletter = 10;
+			else
+			{
+				cout << "Please enter a valid letter..." << endl;
+			}
+		}
+		else if (i == 2)
+		{
+			number = response4.substr(response4.find(i));
+			inumber = stoi(number);
+			if (inumber > 10)
+				cout << "Please enter a valid number..." << endl;
+		}
+		else if (i == 3)
+		{
+			//ignore
+		}
+		else
+		{
+			orientation = response4.substr(response4.find(i));
+			if (orientation == "h")
+				horizontal = true;
+			else if (orientation == "v")
+				horizontal = false;
+			else
+				cout << "Please enter a valid orientation..." << endl;
+		}
+	}
+	mBoard[iletter][inumber] = gpro_battleship_ship_b4;
+	if (horizontal)
+	{
+		mBoard[iletter][inumber + 1] = gpro_battleship_ship_b4;
+		mBoard[iletter][inumber + 2] = gpro_battleship_ship_b4;
+		mBoard[iletter][inumber + 3] = gpro_battleship_ship_b4;
+	}
+	else
+	{
+		mBoard[iletter + 1][inumber] = gpro_battleship_ship_b4;
+		mBoard[iletter + 2][inumber] = gpro_battleship_ship_b4;
+		mBoard[iletter + 3][inumber] = gpro_battleship_ship_b4;
+	}
+
+	//CARRIER
+
+	//ask user where to put ships
+	cout << "Where would you like to place your Carrier? (5 spaces)" << endl <<
+		"Please use a letter followed by a number, then either 'v' or 'h' for the direction separated by a comma." << endl;
+	cin >> response5;
+
+	//get coords
+	for (int i = 0; i < RESPONSE_LENGTH; i++)
+	{
+		if (i == 1)
+		{
+			letter = response5.substr(response5.find(i));
+
+			if (letter == "A" || letter == "a")
+				iletter = 1;
+			else if (letter == "B" || letter == "b")
+				iletter = 2;
+			else if (letter == "C" || letter == "c")
+				iletter = 3;
+			else if (letter == "D" || letter == "d")
+				iletter = 4;
+			else if (letter == "E" || letter == "e")
+				iletter = 5;
+			else if (letter == "F" || letter == "f")
+				iletter = 6;
+			else if (letter == "G" || letter == "g")
+				iletter = 7;
+			else if (letter == "H" || letter == "h")
+				iletter = 8;
+			else if (letter == "I" || letter == "i")
+				iletter = 9;
+			else if (letter == "J" || letter == "j")
+				iletter = 10;
+			else
+			{
+				cout << "Please enter a valid letter..." << endl;
+			}
+		}
+		else if (i == 2)
+		{
+			number = response5.substr(response5.find(i));
+			inumber = stoi(number);
+			if (inumber > 10)
+				cout << "Please enter a valid number..." << endl;
+		}
+		else if (i == 3)
+		{
+			//ignore
+		}
+		else
+		{
+			orientation = response5.substr(response5.find(i));
+			if (orientation == "h")
+				horizontal = true;
+			else if (orientation == "v")
+				horizontal = false;
+			else
+				cout << "Please enter a valid orientation..." << endl;
+		}
+	}
+	mBoard[iletter][inumber] = gpro_battleship_ship_c5;
+	if (horizontal)
+	{
+		mBoard[iletter][inumber + 1] = gpro_battleship_ship_c5;
+		mBoard[iletter][inumber + 2] = gpro_battleship_ship_c5;
+		mBoard[iletter][inumber + 3] = gpro_battleship_ship_c5;
+		mBoard[iletter][inumber + 4] = gpro_battleship_ship_c5;
+	}
+	else
+	{
+		mBoard[iletter + 1][inumber] = gpro_battleship_ship_c5;
+		mBoard[iletter + 2][inumber] = gpro_battleship_ship_c5;
+		mBoard[iletter + 3][inumber] = gpro_battleship_ship_c5;
+		mBoard[iletter + 4][inumber] = gpro_battleship_ship_c5;
 	}
 
 	cout << "All ships have been placed!" << endl;
@@ -504,11 +842,15 @@ void Battleship::input()
 	}
 	else
 	{
-		//get other player data?
 		cout << "It is not currently your turn..." << endl;
 	}
 
 	setTurn();
+}
+
+void Battleship::receiveInput(std::string move)
+{
+	//parse input from other user
 }
 
 void Battleship::update()
