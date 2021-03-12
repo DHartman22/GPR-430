@@ -24,6 +24,10 @@
 
 #include "gpro-net/gpro-net-server/gpro-net-RakNet-Server.hpp"
 
+enum RequestGameServerList
+{
+	ID_REQUEST_GAME_SERVER_LIST = ID_USER_PACKET_ENUM + 1
+};
 
 namespace gproNet
 {
@@ -71,6 +75,11 @@ namespace gproNet
 			WriteTest(bitstream_w, "Hello client from server");
 			peer->Send(&bitstream_w, MEDIUM_PRIORITY, UNRELIABLE_SEQUENCED, 0, sender, false);
 		}	return true;
+		case ID_REQUEST_GAME_SERVER_LIST:
+		{
+			//return active game servers
+			servers.CheckServers();
+		}
 
 		}
 		return false;

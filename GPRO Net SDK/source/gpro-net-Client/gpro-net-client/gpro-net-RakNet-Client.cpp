@@ -24,6 +24,10 @@
 
 #include "gpro-net/gpro-net-client/gpro-net-RakNet-Client.hpp"
 
+enum RequestGameServerList
+{
+	ID_REQUEST_GAME_SERVER_LIST = ID_USER_PACKET_ENUM + 1
+};
 
 namespace gproNet
 {
@@ -63,7 +67,12 @@ namespace gproNet
 			//printf("The server is full.\n");
 			return true;
 		case ID_DISCONNECTION_NOTIFICATION:
-			//printf("We have been disconnected.\n");
+			//printf("We have been disconnected.\n")
+
+			//attempt to rejoin 
+			peer->Connect("127.0.0.1", SET_GPRO_SERVER_PORT, 0, 0);
+
+
 			return true;
 		case ID_CONNECTION_LOST:
 			//printf("Connection lost.\n");

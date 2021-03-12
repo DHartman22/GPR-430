@@ -82,6 +82,10 @@ int main(int const argc, char const* const argv[])
 
 	gproNet::cRakNetClient client;
 
+	//default constructor call attempts to join server
+	//prevents other user input until attempt is successful
+	
+
 	while (1)
 	{
 		client.MessageLoop();

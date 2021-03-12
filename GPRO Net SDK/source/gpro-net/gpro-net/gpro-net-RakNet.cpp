@@ -39,10 +39,25 @@ namespace gproNet
 
 	bool cRakNetManager::ProcessMessage(RakNet::BitStream& bitstream, RakNet::SystemAddress const sender, RakNet::Time const dtSendToReceive, RakNet::MessageID const msgID)
 	{
-		// process messages that can be handled the same way for all types of peers
-		//switch (msgID)
-		//{
-		//}
+		 //process messages that can be handled the same way for all types of peers
+		switch (msgID)
+		{
+			case ID_CONNECTION_LOST:
+			{
+
+				break;
+			}
+			case ID_NEW_INCOMING_CONNECTION:
+			{
+				//
+				break;
+			}
+			case ID_CONNECTION_REQUEST_ACCEPTED:
+			{
+				
+				break;
+			}
+		}
 		return false;
 	}
 
@@ -108,4 +123,5 @@ namespace gproNet
 		// done
 		return count;
 	}
+
 }

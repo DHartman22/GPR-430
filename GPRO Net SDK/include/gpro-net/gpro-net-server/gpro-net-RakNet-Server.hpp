@@ -28,6 +28,7 @@
 
 
 #include "gpro-net/gpro-net/gpro-net-RakNet.hpp"
+#include "gpro-net/gpro-net-server/GameServerList.h"
 
 
 namespace gproNet
@@ -67,6 +68,8 @@ namespace gproNet
 		//		param msgID: message identifier
 		//		return: was message processed
 		virtual bool ProcessMessage(RakNet::BitStream& bitstream, RakNet::SystemAddress const sender, RakNet::Time const dtSendToReceive, RakNet::MessageID const msgID);
+	
+		GameServerList servers; //can be accessed in main message handle loop
 	};
 
 }
