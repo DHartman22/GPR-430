@@ -45,6 +45,9 @@ namespace gproNet
 	enum eSettings
 	{
 		SET_GPRO_SERVER_PORT = 7777,
+		SET_GPRO_MAX_CLIENTS = 8,
+		SET_GPRO_MAX_AGENTS_PER_CLIENT = 16,
+		SET_GPRO_MAX_AGENTS = SET_GPRO_MAX_CLIENTS * SET_GPRO_MAX_AGENTS_PER_CLIENT,
 	};
 
 
@@ -59,7 +62,10 @@ namespace gproNet
 		ID_GPRO_MESSAGE_COMMON_END
 	};
 
-
+	struct sSimulationAgent
+	{
+		float position[3];
+	};
 	// cRakNetManager
 	//	Base class for RakNet peer management.
 	class cRakNetManager abstract
@@ -70,6 +76,7 @@ namespace gproNet
 		//	Pointer to RakNet peer instance.
 		RakNet::RakPeerInterface* peer;
 
+		sSimulationAgent agents[SET_GPRO_MAX_CLIENTS][SET_GPRO_MAX_AGENTS_PER_CLIENT];
 		// protected methods
 	protected:
 		// cRakNetManager

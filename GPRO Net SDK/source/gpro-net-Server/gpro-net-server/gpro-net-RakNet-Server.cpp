@@ -30,7 +30,7 @@ namespace gproNet
 	cRakNetServer::cRakNetServer()
 	{
 		RakNet::SocketDescriptor sd(SET_GPRO_SERVER_PORT, 0);
-		unsigned short MAX_CLIENTS = 10;
+		unsigned short MAX_CLIENTS = SET_GPRO_MAX_CLIENTS;
 
 		peer->Startup(MAX_CLIENTS, &sd, 1);
 		peer->SetMaximumIncomingConnections(MAX_CLIENTS);
