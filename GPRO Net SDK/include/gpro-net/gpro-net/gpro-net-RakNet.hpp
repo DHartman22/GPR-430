@@ -59,6 +59,62 @@ namespace gproNet
 		ID_GPRO_MESSAGE_COMMON_END
 	};
 
+	struct sSpatialPose
+	{
+		float scale[3];     // non-uniform scale
+		float rotate[3];    // orientation as Euler angles
+		float translate[3]; // translation
+
+		// read from stream
+		RakNet::BitStream& Read(RakNet::BitStream& bitstream)
+		{
+			//
+			bitstream.Read(scale[0]);
+			bitstream.Read(scale[1]);
+			bitstream.Read(scale[2]);
+
+			//insert unsigned chars into floats
+			//divide by 127... and something else?
+			//convert from [-1, 1] to [0, 360] using method from write but reversed
+			//this method is very lossy, some tweaks could make it work better but I'm unsure exactly how
+			bitstream.Read(rotate[0]);
+			bitstream.Read(rotate[1]);
+			bitstream.Read(rotate[2]);
+			
+			
+			bitstream.Read(translate[0]);
+			bitstream.Read(translate[1]);
+			bitstream.Read(translate[2]);
+			return bitstream;
+		}
+
+		// write to stream
+		RakNet::BitStream& Write(RakNet::BitStream& bitstream) const
+		{
+			//how do i compress this
+
+			//non-uniform, so all values can be entirely different
+			bitstream.Write(scale[0]);
+			bitstream.Write(scale[1]);
+			bitstream.Write(scale[2]);
+			
+			//convert euler angles from [0, 360] to  [-1, 1]
+			//multiply by 127 then insert values into unsigned chars to get floats into range of unsigned char array
+			//find the largest possible value in a channel? use that for the compression formula?
+			//limited to [0, 360]
+			bitstream.Write(rotate[0]);
+			bitstream.Write(rotate[1]);
+			bitstream.Write(rotate[2]);
+			
+			//no restrictions here either
+			//make values fit into some kind of integer range
+			//how do I do that when I don't know what the limits are
+			bitstream.Write(translate[0]);
+			bitstream.Write(translate[1]);
+			bitstream.Write(translate[2]);
+			return bitstream; //return and send the bitstream wherever it needs to go
+		}
+	};
 
 	// cRakNetManager
 	//	Base class for RakNet peer management.
