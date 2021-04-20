@@ -1,4 +1,4 @@
-localhost
+DESKTOP-AJEL5OS
 
 # Remote Debugging Configuration
 # Provided by Daniel S. Buckstein

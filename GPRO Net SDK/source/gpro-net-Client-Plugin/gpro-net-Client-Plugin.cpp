@@ -23,7 +23,33 @@
 */
 
 #include "gpro-net-Client-Plugin.h"
+#include "gpro-net/gpro-net-client/gpro-net-RakNet-Client.hpp"
 
+GPRO_NET_SYMBOL gproNet::cRakNetClient* gClient = 0;
+
+int Startup()
+{
+	if (!gClient)
+	{
+		gClient = new gproNet::cRakNetClient();
+		if (gClient)
+			return 1;
+		return 0;
+	}
+	return -1;
+}
+
+int Shutdown()
+{
+	if (gClient)
+	{
+		delete(gClient);
+		gClient = 0;
+		return 1;
+	}
+	return -1;
+
+}
 
 int foo(int bar)
 {

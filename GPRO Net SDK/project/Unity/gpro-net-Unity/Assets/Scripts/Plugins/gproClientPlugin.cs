@@ -8,4 +8,10 @@ public class gproClientPlugin
 {
 	[DllImport("gpro-net-Client-Plugin")]
 	public static extern int foo(int bar);
+
+	[DllImport("gpro-net-Client-Plugin")]
+	public static extern int Startup();
+
+	[DllImport("gpro-net-Client-Plugin")]
+	public static extern int Shutdown();
 }

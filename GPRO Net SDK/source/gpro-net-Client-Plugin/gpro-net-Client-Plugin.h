@@ -38,6 +38,9 @@ extern "C" {
 
 GPRO_NET_SYMBOL int foo(int bar);
 
+GPRO_NET_SYMBOL int Startup();
+GPRO_NET_SYMBOL int Shutdown();
+
 
 #ifdef __cplusplus
 }
