@@ -55,3 +55,9 @@ int foo(int bar)
 {
 	return (bar + 1);
 }
+
+int MessageLoop()
+{
+	gClient->MessageLoop();
+	return 1;
+}

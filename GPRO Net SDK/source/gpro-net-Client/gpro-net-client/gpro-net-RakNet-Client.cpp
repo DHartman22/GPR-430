@@ -30,7 +30,7 @@ namespace gproNet
 	cRakNetClient::cRakNetClient()
 	{
 		RakNet::SocketDescriptor sd;
-		char SERVER_IP[16] = "127.0.0.1";
+		char SERVER_IP[16] = "172.16.2.59";
 
 		peer->Startup(1, &sd, 1);
 		peer->SetMaximumIncomingConnections(0);
@@ -51,22 +51,22 @@ namespace gproNet
 		switch (msgID)
 		{
 		case ID_REMOTE_DISCONNECTION_NOTIFICATION:
-			//printf("Another client has disconnected.\n");
+			printf("Another client has disconnected.\n");
 			break;
 		case ID_REMOTE_CONNECTION_LOST:
-			//printf("Another client has lost the connection.\n");
+			printf("Another client has lost the connection.\n");
 			break;
 		case ID_REMOTE_NEW_INCOMING_CONNECTION:
-			//printf("Another client has connected.\n");
+			printf("Another client has connected.\n");
 			break;
 		case ID_NO_FREE_INCOMING_CONNECTIONS:
-			//printf("The server is full.\n");
+			printf("The server is full.\n");
 			return true;
 		case ID_DISCONNECTION_NOTIFICATION:
-			//printf("We have been disconnected.\n");
+			printf("We have been disconnected.\n");
 			return true;
 		case ID_CONNECTION_LOST:
-			//printf("Connection lost.\n");
+			printf("Connection lost.\n");
 			return true;
 
 		case ID_CONNECTION_REQUEST_ACCEPTED:

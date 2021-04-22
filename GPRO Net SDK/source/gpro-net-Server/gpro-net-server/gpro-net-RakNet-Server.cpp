@@ -50,16 +50,16 @@ namespace gproNet
 		switch (msgID)
 		{
 		case ID_NEW_INCOMING_CONNECTION:
-			//printf("A connection is incoming.\n");
+			printf("A connection is incoming.\n");
 			return true;
 		case ID_NO_FREE_INCOMING_CONNECTIONS:
-			//printf("The server is full.\n");
+			printf("The server is full.\n");
 			return true;
 		case ID_DISCONNECTION_NOTIFICATION:
-			//printf("A client has disconnected.\n");
+			printf("A client has disconnected.\n");
 			return true;
 		case ID_CONNECTION_LOST:
-			//printf("A client lost the connection.\n");
+			printf("A client lost the connection.\n");
 			return true;
 
 			// test message

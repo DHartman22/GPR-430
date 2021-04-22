@@ -10,12 +10,18 @@ public class gproClientManager : MonoBehaviour
     {
 		int test = gproClientPlugin.foo(9000);
 		Debug.Log(test);
+        test = gproClientPlugin.Startup();
+        Debug.Log(test);
+        test = gproClientPlugin.Shutdown();
+        Debug.Log(test);
+
+
         GameObject.FindGameObjectWithTag("Player").GetComponent<Text>().text = test.ToString();
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        gproClientPlugin.MessageLoop();
     }
 }

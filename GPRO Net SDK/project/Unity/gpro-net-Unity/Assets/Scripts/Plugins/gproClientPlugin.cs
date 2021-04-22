@@ -14,4 +14,7 @@ public class gproClientPlugin
 
 	[DllImport("gpro-net-Client-Plugin")]
 	public static extern int Shutdown();
+
+	[DllImport("gpro-net-Client-Plugin")]
+	public static extern int MessageLoop();
 }
