@@ -55,6 +55,11 @@ enum DeclineJoinEvent //Turns away users who already have an identical ip connec
 	ID_DECLINE_JOIN = ID_DISCONNECT_EVENT + 1
 };
 
+enum PlayerStateUpdateEvent
+{
+	ID_PLAYER_STATE_UPDATE = ID_DECLINE_JOIN + 1
+};
+
 namespace gproNet
 {
 	cRakNetManager::cRakNetManager()

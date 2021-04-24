@@ -27,6 +27,7 @@
 #include "gpro-net/gpro-net.h"
 
 #include "../gpro-net-Client-Plugin/gpro-net-Client-Plugin.h"
+#include <cstdlib>
 
 #if (defined _WINDOWS || defined _WIN32)
 
@@ -83,10 +84,15 @@ int main(int const argc, char const* const argv[])
 	testPlugin();
 
 	gproNet::cRakNetClient client;
-
+	int frames = 0;
 	while (1)
 	{
 		client.MessageLoop();
+		//client.sendPlayerState();
+		//frames++;
+		//printf(std::to_string(frames).c_str());
+		//printf("\n");
+		//Sleep(16);
 	}
 
 	printf("\n\n");

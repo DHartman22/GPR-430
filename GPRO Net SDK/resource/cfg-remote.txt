@@ -1,4 +1,4 @@
-192.168.86.56
+172.16.2.51:7777
 
 # Remote Debugging Configuration
 # Provided by Daniel S. Buckstein

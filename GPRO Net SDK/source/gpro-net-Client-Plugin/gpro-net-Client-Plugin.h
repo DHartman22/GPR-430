@@ -29,7 +29,7 @@
 
 
 #include "gpro-net/gpro-net/gpro-net-util/gpro-net-lib.h"
-
+#include <string>
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,6 +41,13 @@ GPRO_NET_SYMBOL int foo(int bar);
 GPRO_NET_SYMBOL int Startup();
 GPRO_NET_SYMBOL int Shutdown();
 GPRO_NET_SYMBOL int MessageLoop();
+GPRO_NET_SYMBOL const char* GetUsername();
+GPRO_NET_SYMBOL bool StartClient();
+GPRO_NET_SYMBOL bool IsActive();
+GPRO_NET_SYMBOL int Login();
+GPRO_NET_SYMBOL char* UpdatePlayerState(float xPosition, float yPosition, float zPosition, char *test);
+
+
 
 #ifdef __cplusplus
 }

@@ -23,7 +23,7 @@
 */
 
 #include "gpro-net/gpro-net-server/gpro-net-RakNet-Server.hpp"
-
+#include <string>
 
 namespace gproNet
 {
@@ -45,33 +45,59 @@ namespace gproNet
 	{
 		if (cRakNetManager::ProcessMessage(bitstream, sender, dtSendToReceive, msgID))
 			return true;
-
+		
 		// server-specific messages
 		switch (msgID)
 		{
-		case ID_NEW_INCOMING_CONNECTION:
-			printf("A connection is incoming.\n");
-			return true;
-		case ID_NO_FREE_INCOMING_CONNECTIONS:
-			printf("The server is full.\n");
-			return true;
-		case ID_DISCONNECTION_NOTIFICATION:
-			printf("A client has disconnected.\n");
-			return true;
-		case ID_CONNECTION_LOST:
-			printf("A client lost the connection.\n");
-			return true;
+			case ID_NEW_INCOMING_CONNECTION:
+				printf("A connection is incoming.\n");
+				return true;
+			case ID_NO_FREE_INCOMING_CONNECTIONS:
+				printf("The server is full.\n");
+				return true;
+			case ID_DISCONNECTION_NOTIFICATION:
+				printf("A client has disconnected.\n");
+				return true;
+			case ID_CONNECTION_LOST:
+				printf("A client lost the connection.\n");
+				return true;
 
-			// test message
-		case ID_GPRO_MESSAGE_COMMON_BEGIN:
-		{
-			// server receives greeting, print it and send one back
-			RakNet::BitStream bitstream_w;
-			ReadTest(bitstream);
-			WriteTest(bitstream_w, "Hello client from server");
-			peer->Send(&bitstream_w, MEDIUM_PRIORITY, UNRELIABLE_SEQUENCED, 0, sender, false);
-		}	return true;
+				// test message
+			case ID_GPRO_MESSAGE_COMMON_BEGIN:
+			{
+				// server receives greeting, print it and send one back
+				RakNet::BitStream bitstream_w;
+				ReadTest(bitstream);
+				WriteTest(bitstream_w, "Hello client from server");
+				peer->Send(&bitstream_w, MEDIUM_PRIORITY, UNRELIABLE_SEQUENCED, 0, sender, false);
+				return true;
+			}	
+			case ID_PLAYER_STATE_UPDATE:
+			{
+				bool isPlayer1;
+				bitstream.IgnoreBytes(sizeof(RakNet::MessageID));
+				if (bitstream.Read(isPlayer1))
+				{
+					if (!isPlayer1)
+					{
+						bitstream.Read(player1.xPos);
+						bitstream.Read(player1.yPos);
+						bitstream.Read(player1.zPos);
+						printf(std::to_string(player1.xPos).c_str());
+						printf("\n");
+					}
+					else
+					{
+						bitstream.Read(player2.xPos);
+						bitstream.Read(player2.yPos);
+						bitstream.Read(player2.zPos);
+						printf(std::to_string(player2.xPos).c_str());
+						printf("\n");
 
+					}
+				}
+				return true;
+			}
 		}
 		return false;
 	}

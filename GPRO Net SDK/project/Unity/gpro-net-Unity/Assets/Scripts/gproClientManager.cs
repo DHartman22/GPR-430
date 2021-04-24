@@ -5,23 +5,50 @@ using UnityEngine.UI;
 
 public class gproClientManager : MonoBehaviour
 {
+    public InputField loginInput;
+    private GameObject player;
     // Start is called before the first frame update
     void Start()
     {
-		int test = gproClientPlugin.foo(9000);
-		Debug.Log(test);
-        test = gproClientPlugin.Startup();
-        Debug.Log(test);
-        test = gproClientPlugin.Shutdown();
-        Debug.Log(test);
+        player = GameObject.FindGameObjectWithTag("Player");
+    }
+
+    public void Login()
+    {
+        Debug.Log(gameObject.name);
+
+        //char name = (char)loginInput.text;
+        //int test = gproClientPlugin.Login();
+        //test = gproClientPlugin.Login();
+        bool a = gproClientPlugin.StartClient();
+        Debug.Log(a);        
+        //GameObject.FindGameObjectWithTag("Player").GetComponent<Text>().text = gproClientPlugin.GetUsername().ToString();
+        
 
 
-        GameObject.FindGameObjectWithTag("Player").GetComponent<Text>().text = test.ToString();
+    }
+
+    void CheckInput()
+    {
+        if(Input.GetKeyDown(KeyCode.P))
+        {
+            int test = gproClientPlugin.Shutdown();
+            Debug.Log(test);
+        }
     }
 
     // Update is called once per frame
     void Update()
     {
-        gproClientPlugin.MessageLoop();
+
+        if (gproClientPlugin.IsActive())
+        {
+            gproClientPlugin.MessageLoop();
+            char[] a = player.transform.position.x.ToString().ToCharArray();
+            Debug.Log(gproClientPlugin.UpdatePlayerState(player.transform.position.x,
+            player.transform.position.y, player.transform.position.z, a));
+            CheckInput();
+            
+        }
     }
 }

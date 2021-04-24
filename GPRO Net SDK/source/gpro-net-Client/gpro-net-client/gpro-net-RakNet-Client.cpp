@@ -30,11 +30,13 @@ namespace gproNet
 	cRakNetClient::cRakNetClient()
 	{
 		RakNet::SocketDescriptor sd;
-		char SERVER_IP[16] = "172.16.2.59";
-
+		char SERVER_IP[16] = "172.16.2.51";
+		username = "What is Cloud doing?";
 		peer->Startup(1, &sd, 1);
 		peer->SetMaximumIncomingConnections(0);
 		peer->Connect(SERVER_IP, SET_GPRO_SERVER_PORT, 0, 0);
+		serverAddress = RakNet::SystemAddress(SERVER_IP, SET_GPRO_SERVER_PORT);
+		setServerAddress = true;
 	}
 
 	cRakNetClient::~cRakNetClient()
@@ -42,8 +44,25 @@ namespace gproNet
 		peer->Shutdown(0);
 	}
 
+	void cRakNetClient::sendPlayerState()
+	{
+		if (setServerAddress) //this whole variable is kinda scuffed but idk how else to get this variable normally
+		{
+			RakNet::BitStream bs;
+			bs.Write((RakNet::MessageID)ID_PLAYER_STATE_UPDATE);
+			bs.Write(isPlayer1);
+			bs.Write(state.xPos);
+			bs.Write(state.yPos);
+			bs.Write(state.zPos);
+			peer->Send(&bs, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 0, serverAddress, false);
+		}
+
+		return;
+	}
+
 	bool cRakNetClient::ProcessMessage(RakNet::BitStream& bitstream, RakNet::SystemAddress const sender, RakNet::Time const dtSendToReceive, RakNet::MessageID const msgID)
 	{
+
 		if (cRakNetManager::ProcessMessage(bitstream, sender, dtSendToReceive, msgID))
 			return true;
 
@@ -73,18 +92,34 @@ namespace gproNet
 		{
 			// client connects to server, send greeting
 			RakNet::BitStream bitstream_w;
-			WriteTest(bitstream_w, "Hello server from client");
-			peer->Send(&bitstream_w, MEDIUM_PRIORITY, UNRELIABLE_SEQUENCED, 0, sender, false);
-		}	return true;
+			WriteTest(bitstream_w, username.c_str());
+			serverAddress = sender;
+			setServerAddress = true;
+			peer->Send(&bitstream_w, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 0, sender, false);
+			return true;
+		}	
 
 			// test message
 		case ID_GPRO_MESSAGE_COMMON_BEGIN:
 		{
 			// client receives greeting, just print it
 			ReadTest(bitstream);
-		}	return true;
+			return true;
+		}	
+		case ID_PLAYER_STATE_UPDATE:
+		{
+			
+
+		}
 
 		}
 		return false;
 	}
+
+	bool sendUsername(RakNet::BitStream& bitstream, RakNet::SystemAddress const sender, RakNet::Time const dtSendToReceive, RakNet::MessageID const msgID)
+	{
+		return false;
+	}
+
+
 }

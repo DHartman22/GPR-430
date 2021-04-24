@@ -69,7 +69,6 @@ namespace gproNet
 		// peer
 		//	Pointer to RakNet peer instance.
 		RakNet::RakPeerInterface* peer;
-
 		// protected methods
 	protected:
 		// cRakNetManager

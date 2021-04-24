@@ -28,7 +28,42 @@
 
 
 #include "gpro-net/gpro-net/gpro-net-RakNet.hpp"
+#include "gpro-net/gpro-net/PlayerState.h"
 
+enum GameMessages
+{
+	ID_GAME_MESSAGE_1 = ID_USER_PACKET_ENUM + 1
+};
+
+enum UsernameMessage
+{
+	ID_NEW_USER_JOINED = ID_GAME_MESSAGE_1 + 1
+};
+
+enum ServerMessage //A message sent from the server to the client privately, such as a user list
+{
+	ID_SERVER_MESSAGE = ID_NEW_USER_JOINED + 1
+};
+
+enum PrivateMessage //a message sent from another user only for a specific client
+{
+	ID_PRIVATE_MESSAGE = ID_SERVER_MESSAGE + 1
+};
+
+enum DisconnectMessage //sends when client is shut down
+{
+	ID_DISCONNECT_EVENT = ID_PRIVATE_MESSAGE + 1
+};
+
+enum DeclineJoinEvent //Turns away users who already have an identical ip connected
+{
+	ID_DECLINE_JOIN = ID_DISCONNECT_EVENT + 1
+};
+
+enum PlayerStateUpdateEvent
+{
+	ID_PLAYER_STATE_UPDATE = ID_DECLINE_JOIN + 1
+};
 
 namespace gproNet
 {
@@ -43,6 +78,7 @@ namespace gproNet
 		ID_GPRO_MESSAGE_SERVER_END
 	};
 
+	
 
 	// cRakNetServer
 	//	RakNet peer management for server.
@@ -53,6 +89,9 @@ namespace gproNet
 		// cRakNetServer
 		//	Default constructor.
 		cRakNetServer();
+
+		PlayerState player1;
+		PlayerState player2;
 
 		// ~cRakNetServer
 		//	Destructor.
