@@ -6,7 +6,7 @@ using UnityEngine.UI;
 public class gproClientManager : MonoBehaviour
 {
     public InputField loginInput;
-    private GameObject player;
+    public GameObject player;
     // Start is called before the first frame update
     void Start()
     {
@@ -44,10 +44,11 @@ public class gproClientManager : MonoBehaviour
         if (gproClientPlugin.IsActive())
         {
             gproClientPlugin.MessageLoop();
+            CheckInput();
             char[] a = player.transform.position.x.ToString().ToCharArray();
+            
             Debug.Log(gproClientPlugin.UpdatePlayerState(player.transform.position.x,
             player.transform.position.y, player.transform.position.z, a));
-            CheckInput();
             
         }
     }

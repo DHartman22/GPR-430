@@ -1641,6 +1641,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   loginInput: {fileID: 1710504770}
+  player: {fileID: 0}
 --- !u!4 &604555197
 Transform:
   m_ObjectHideFlags: 0
@@ -2248,6 +2249,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   loginInput: {fileID: 0}
+  player: {fileID: 0}
 --- !u!81 &900801518
 AudioListener:
   m_ObjectHideFlags: 0
