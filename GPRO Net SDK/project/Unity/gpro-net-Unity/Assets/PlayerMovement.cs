@@ -1,9 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-namespace Mirror
-{
-    public class PlayerMovement : NetworkBehaviour
+    public class PlayerMovement : MonoBehaviour
     {
         public float xMove = 0f;
         public float zMove = 0f;
@@ -25,10 +23,10 @@ namespace Mirror
         float groundCheckDistance = 0.5f;
 
         public float jumpHeight = 5f;
-        public bool inputAllowed = true;
+        public bool inputAllowed;
         public bool gravityPaused = false;
 
-        private AudioSource bounce;
+        public Camera playerCamera;
 
         bool spaceHeld;
 
@@ -45,7 +43,6 @@ namespace Mirror
         {
             if (inputAllowed)
             {
-                Debug.Log("Move");
                 isGrounded = Physics.CheckSphere(groundCheck.position, groundCheckDistance, groundMask);
                 if (isGrounded && velocity.y < 0)
                 {
@@ -96,7 +93,7 @@ namespace Mirror
         // Update is called once per frame
         private void Update()
         {
-            if(hasAuthority)
+            if(inputAllowed)
             {
                 CheckInput();
             }
@@ -104,7 +101,7 @@ namespace Mirror
 
         void FixedUpdate()
         {
-            if (hasAuthority)
+            if (inputAllowed)
             {
                 //Jump();
                 Move();
@@ -116,20 +113,20 @@ namespace Mirror
             }
         }
 
-        [Command]
-        private void CmdPlayerMove()
-        {
-            RpcPlayerMove();
-        }
+        //[Command]
+        //private void CmdPlayerMove()
+        //{
+        //    RpcPlayerMove();
+        //}
 
-        [ClientRpc]
-        private void RpcPlayerMove()
-        {
-                Move();
-                Jump();
-            //JumpNoInput();
-            //transform.Translate(new Vector3(1, 1, 2));
-        }
+        //[ClientRpc]
+        //private void RpcPlayerMove()
+        //{
+        //        Move();
+        //        Jump();
+        //    //JumpNoInput();
+        //    //transform.Translate(new Vector3(1, 1, 2));
+        //}
 
         //private void FixedUpdate()
         //{
@@ -140,5 +137,3 @@ namespace Mirror
         //}
 
     }
-
-}

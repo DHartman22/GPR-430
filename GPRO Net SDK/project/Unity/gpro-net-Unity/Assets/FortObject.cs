@@ -1,10 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Mirror;
-namespace Mirror
-{
-    public class FortObject : NetworkBehaviour
+
+    public class FortObject : MonoBehaviour
     {
         
         // Start is called before the first frame update
@@ -20,4 +18,3 @@ namespace Mirror
         }
     }
 
-}
