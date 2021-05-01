@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 using System.Text;
+using UnityEngine.UI;
 #pragma warning disable CS0618 // Type or member is obsolete
 
 public class ServerClient
@@ -20,15 +21,24 @@ public class Server : MonoBehaviour
 
     private int port = 7777;
 
+    [SerializeField]
     private int hostId;
+    [SerializeField]
     private int webHostId;
+    [SerializeField]
     private int reliableChannel;
+    [SerializeField]
     private int unreliableChannel;
 
+    [SerializeField]
     private bool isStarted = false;
+    [SerializeField]
     private byte error;
 
-    private List<ServerClient> clients = new List<ServerClient>();
+    [SerializeField]
+    public List<ServerClient> clients = new List<ServerClient>();
+
+
     // Start is called before the first frame update
     void Start()
     {
@@ -47,10 +57,12 @@ public class Server : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         if (!isStarted)
             return;
+
+        ServerList();
 
         int recHostId;
         int connectionId;
@@ -71,12 +83,24 @@ public class Server : MonoBehaviour
             case NetworkEventType.DataEvent:
                 {
                     string msg = Encoding.Unicode.GetString(recBuffer, 0, dataSize);
-                    Debug.Log("Player " + connectionId + " has sent : " + msg);
+                    Debug.Log("Player " + connectionId + " has sent : " + msg + " of size: " + dataSize);
+
+                    string[] splitData = msg.Split('|');
+
+                    switch (splitData[0])
+                    {
+                        case "Transform":
+                            {
+                                Send(msg, channelId, clients);
+                                break;
+                            }
+                    }
                     break;
                 }
             case NetworkEventType.DisconnectEvent:
                 {
                     Debug.Log("Player " + connectionId + " has disconnected");
+                    OnDisconnect(connectionId);
                     break;
                 }
 
@@ -86,6 +110,18 @@ public class Server : MonoBehaviour
                     break;
                 }
         }
+        
+    }
+
+
+    private void ServerList()
+    {
+        string clientNames = "";
+        foreach(ServerClient sc in clients)
+        {
+            clientNames.Insert(clientNames.Length, sc.connectionId.ToString());
+        }
+        GameObject.Find("Text").GetComponent<Text>().text = clientNames;
     }
 
     private void OnConnection(int cnnId)
@@ -100,12 +136,39 @@ public class Server : MonoBehaviour
         foreach (ServerClient sc in clients)
         {
             msg += sc.playerName + '%' + sc.connectionId + '|';
-
         }
         msg = msg.Trim('|');
         //ID|3|temp%1|temp%2|temp%3
         Send(msg, reliableChannel, cnnId);
-        
+
+        //notify other players of join
+        string joinMsg = "Join" + "|" + cnnId;
+        Send(joinMsg, reliableChannel, clients, cnnId); //exclude the client connecting to avoid spawning an extra player
+
+    }
+
+    private void OnDisconnect(int cnnId)
+    {
+        ServerClient tempPlayer = new ServerClient();
+        tempPlayer.connectionId = cnnId;
+        tempPlayer.playerName = "Player";
+        foreach(ServerClient sc in clients)
+        {
+            if(sc.connectionId == cnnId)
+            {
+                clients.Remove(sc);
+                string message = "DC" + "|" + cnnId;
+                Send(message, reliableChannel, clients);
+                return;
+            }
+        }
+        Debug.Log("OnDisconnect: cnnId " + cnnId + " not found");
+        return;
+    }
+
+    private void TransformUpdate(string position, int cnnId)
+    {
+        Send(position, unreliableChannel, clients);
     }
 
     private void Send(string message, int channelId, int cnnId)
@@ -113,7 +176,7 @@ public class Server : MonoBehaviour
         List<ServerClient> c = new List<ServerClient>();
         c.Add(clients.Find(x => x.connectionId == cnnId));
         Send(message, channelId, c);
-        byte[] msg = Encoding.Unicode.GetBytes(message);
+        //byte[] msg = Encoding.Unicode.GetBytes(message);
 
     }
     private void Send(string message, int channelId, List<ServerClient> c)
@@ -126,6 +189,19 @@ public class Server : MonoBehaviour
         }
 
     }
+
+    private void Send(string message, int channelId, List<ServerClient> c, int exclude)
+    {
+        Debug.Log("Sending : " + message);
+        byte[] msg = Encoding.Unicode.GetBytes(message);
+        foreach (ServerClient sc in c)
+        {
+            if(sc.connectionId != exclude)
+            NetworkTransport.Send(hostId, sc.connectionId, channelId, msg, message.Length * sizeof(char), out error);
+        }
+
+    }
+
 }
 
 #pragma warning restore CS0618 // Type or member is obsolete

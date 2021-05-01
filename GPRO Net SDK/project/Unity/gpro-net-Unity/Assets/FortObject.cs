@@ -8,7 +8,7 @@ using UnityEngine;
         // Start is called before the first frame update
         void Start()
         {
-        
+        transform.parent = null;
         }
 
         // Update is called once per frame
