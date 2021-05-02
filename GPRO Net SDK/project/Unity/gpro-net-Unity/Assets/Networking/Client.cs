@@ -57,7 +57,7 @@ public class Client : MonoBehaviour
     private string playerName;
 
     public Ping pinger;
-
+    public float smoothingSpeed;
 
     public GameObject playerPrefab;
     [SerializeField]
@@ -66,6 +66,10 @@ public class Client : MonoBehaviour
 
     private float lastMovementUpdate;
     public float movementUpdateRate = 0.1f;
+
+    public GameObject puck;
+    public Vector3 puckLastGivenPos;
+    public Vector3 puckMostRecentPos;
 
     // Start is called before the first frame update
     public void Connect()
@@ -77,6 +81,8 @@ public class Client : MonoBehaviour
         //    Debug.Log("Enter a name");
         //    return;
         //}
+
+        
 
         NetworkTransport.Init();
         ConnectionConfig cc = new ConnectionConfig();
@@ -100,14 +106,14 @@ public class Client : MonoBehaviour
             player.playerObject = Instantiate(playerPrefab, GameObject.Find("P1Spawn").transform);
             player.playerObject.name = "Player [cnnId = " + cnnId + "]";
             player.playerObject.transform.parent = null;
-            player.lastGivenPos = player.playerObject.transform.position;
-            player.mostRecentPos = player.playerObject.transform.position;
+            player.lastGivenPos = player.playerObject.transform.GetChild(0).position;
+            player.mostRecentPos = player.playerObject.transform.GetChild(0).position;
 
             if(cnnId == serverCnnId)
             {
-                player.playerObject.GetComponent<CharacterController>().enabled = true;
-                player.playerObject.GetComponent<PlayerMovement>().inputAllowed = true;
-                player.playerObject.GetComponent<PlayerMovement>().playerCamera.enabled = true;
+                player.playerObject.transform.GetChild(0).GetComponent<CharacterController>().enabled = true;
+                player.playerObject.transform.GetChild(0).GetComponent<PlayerMovement>().inputAllowed = true;
+                //player.playerObject.transform.GetChild(0).GetComponent<PlayerMovement>().playerCamera.enabled = true;
                 isStarted = true;
             }
 
@@ -150,7 +156,7 @@ public class Client : MonoBehaviour
 
     private void SendPositionData()
     {
-        Vector3 pos = localPlayerMap[serverCnnId].playerObject.transform.position;
+        Vector3 pos = localPlayerMap[serverCnnId].playerObject.transform.GetChild(0).position;
         char[] charPos = ("Transform" + "|" + serverCnnId + "|" + pos.x.ToString("F2") + "|" + pos.y.ToString("F2") + "|" + pos.z.ToString("F2")).ToCharArray();
         byte[] charBytes = Encoding.Unicode.GetBytes(charPos);
         NetworkTransport.Send(hostId, connectionId, unreliableChannel, charBytes, charPos.Length * sizeof(char), out error);
@@ -165,22 +171,55 @@ public class Client : MonoBehaviour
             float.Parse(splitData[3]),
             float.Parse(splitData[4]));
         //localPlayerList[cnnId].playerObject.transform.position = newPos;
-        localPlayerMap[cnnId].lastGivenPos = localPlayerMap[cnnId].playerObject.transform.position;
+        localPlayerMap[cnnId].lastGivenPos = localPlayerMap[cnnId].playerObject.transform.GetChild(0).position;
         localPlayerMap[cnnId].mostRecentPos = newPos;
 
     }
-
     private void LerpPlayerPosition()
     {
         foreach(KeyValuePair<int, Player> p in localPlayerMap)
         {
-            if(Vector3.Distance(p.Value.playerObject.transform.position, p.Value.mostRecentPos) > 0.1f)
+            if(Vector3.Distance(p.Value.playerObject.transform.GetChild(0).position, p.Value.mostRecentPos) > 0.1f)
             {
-                p.Value.playerObject.transform.position = Vector3.Lerp(p.Value.lastGivenPos, p.Value.mostRecentPos, (Time.time - lastMovementUpdate) / movementUpdateRate);
+                p.Value.playerObject.transform.GetChild(0).position = Vector3.Lerp(p.Value.lastGivenPos, p.Value.mostRecentPos, ((Time.time - lastMovementUpdate) / movementUpdateRate) * smoothingSpeed);
             }
 
         }
     }
+
+    //Puck functions are experimental
+    private void SendPuckData()
+    {
+        Vector3 pos = puck.transform.position;
+        char[] charPos = ("PTransform" + "|" + serverCnnId + "|" + pos.x.ToString("F2") + "|" + pos.y.ToString("F2") + "|" + pos.z.ToString("F2")).ToCharArray();
+        byte[] charBytes = Encoding.Unicode.GetBytes(charPos);
+        NetworkTransport.Send(hostId, connectionId, unreliableChannel, charBytes, charPos.Length * sizeof(char), out error);
+    }
+
+    private void ReceivePuckData(string[] splitData) //Transform|<cnnId>|<xPos>|<yPos>|<zPos>
+    {
+        int cnnId = int.Parse(splitData[1]);
+        if (cnnId == serverCnnId) { return; } //Dont update this client's position
+
+        Vector3 newPos = new Vector3(float.Parse(splitData[2]),
+            float.Parse(splitData[3]),
+            float.Parse(splitData[4]));
+        //localPlayerList[cnnId].playerObject.transform.position = newPos;
+        puckLastGivenPos = puck.transform.position;
+        puckMostRecentPos = newPos;
+
+    }
+    private void LerpPuckPosition()
+    {
+        if (Vector3.Distance(puck.transform.position, puckMostRecentPos) > 0.1f && serverCnnId != 1)
+        {
+            puck.transform.position = Vector3.Lerp(puckLastGivenPos, puckMostRecentPos, ((Time.time - lastMovementUpdate) / movementUpdateRate) * smoothingSpeed);
+        }
+    }
+
+    //
+
+
 
     private void Start()
     {
@@ -220,7 +259,7 @@ public class Client : MonoBehaviour
                     string msg = Encoding.Unicode.GetString(recBuffer, 0, dataSize);
                     Debug.Log("Receiving : " + msg);
                     string[] splitData = msg.Split('|');
-                    switch(splitData[0])
+                    switch(splitData[0]) //Change these to network event types, this is wasting data
                     {
                         case "ID":
                             {
@@ -240,6 +279,11 @@ public class Client : MonoBehaviour
                         case "Join":
                             {
                                 SpawnPlayer(int.Parse(splitData[1]));
+                                break;
+                            }
+                        case "PTransform":
+                            {
+                                ReceivePuckData(splitData);
                                 break;
                             }
                     }
@@ -275,10 +319,12 @@ public class Client : MonoBehaviour
             lastMovementUpdate = Time.time;
             if (isStarted)
                 SendPositionData();
+            SendPuckData();
         }
         else
         {
             LerpPlayerPosition();
+            LerpPuckPosition();
         }
     }
 }

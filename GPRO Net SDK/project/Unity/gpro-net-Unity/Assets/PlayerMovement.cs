@@ -28,6 +28,9 @@ using UnityEngine;
 
         public Camera playerCamera;
 
+        private Vector3 right;
+        private Vector3 forward;
+
         bool spaceHeld;
 
         void CheckInput()
@@ -57,7 +60,7 @@ using UnityEngine;
 
                 
 
-                movement = transform.right * xMove + transform.forward * zMove;
+                movement = right * xMove + forward * zMove;
 
                 if (Input.GetKey(KeyCode.LeftShift))
                 {
@@ -88,6 +91,8 @@ using UnityEngine;
         // Start is called before the first frame update
         void Start()
         {
+        right = transform.right;
+        forward = transform.forward;
         }
 
         // Update is called once per frame
@@ -105,7 +110,7 @@ using UnityEngine;
             {
                 //Jump();
                 Move();
-                Jump();
+                //Jump();
                 //if(Input.GetKey(KeyCode.Space))
                 //{
                 //    CmdPlayerMove();

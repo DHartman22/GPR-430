@@ -94,6 +94,11 @@ public class Server : MonoBehaviour
                                 Send(msg, channelId, clients);
                                 break;
                             }
+                        case "PTransform":
+                            {
+                                Send(msg, channelId, clients, connectionId);
+                                break;
+                            }
                     }
                     break;
                 }
@@ -109,6 +114,7 @@ public class Server : MonoBehaviour
                     Debug.Log("Player " + connectionId + " has broadcasted");
                     break;
                 }
+                
         }
         
     }
