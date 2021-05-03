@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 205656681031006128}
   - component: {fileID: 205656681031006131}
   - component: {fileID: 205656681031006093}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: Puck
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1821,3 +1821,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2bfce414718ffe14c94b9e49f6a2cdbd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  maxSpeed: 0

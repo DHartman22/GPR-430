@@ -71,6 +71,9 @@ public class Client : MonoBehaviour
     public Vector3 puckLastGivenPos;
     public Vector3 puckMostRecentPos;
 
+    private BoxCollider divider; //assign on Start?
+    private bool puckActive;
+
     // Start is called before the first frame update
     public void Connect()
     {
@@ -118,6 +121,17 @@ public class Client : MonoBehaviour
             }
 
             localPlayerMap.Add(cnnId, player);
+
+            if (serverCnnId == 1)
+            {
+                puckActive = true; //puck in control
+                divider = GameObject.Find("Divider").GetComponent<BoxCollider>();
+            }
+            else
+            {
+                puckActive = false; //p1 spawns with puck...
+                divider = GameObject.Find("Divider (1)").GetComponent<BoxCollider>();
+            }
 
             Debug.Log("Spawned " + player.playerObject.name);
         }
@@ -187,6 +201,62 @@ public class Client : MonoBehaviour
         }
     }
 
+    //PUCK OWNERSHIP
+    private void CheckPuckStatus()
+    {
+        //https://answers.unity.com/questions/986235/is-it-possible-to-check-collision-from-another-obj.html
+        //layer 10 has been set to puck layer
+
+        if (true == true) //puck touched!!
+            SendPuckSwitch();
+        else
+        { }
+            //nothing
+    }
+
+    private void SendPuckSwitch() //publically called when divider triggers
+    {
+        if (puckActive == true)
+        {
+            //nothing
+        }
+        else 
+        {
+            bool sendStatus = puckActive; //switch puck physics ownership to our side
+            puckActive = true;
+            //turn bool into data
+            //NetworkTransport.Send(hostId, connectionId, unreliableChannel, charBytes, charPos.Length * sizeof(char), out error); //send
+        }
+    }
+
+    private void ReceivePuckSwitch(string[] splitData)
+    {
+        int cnnId = int.Parse(splitData[1]);
+        if (cnnId == serverCnnId) { return; } //Dont update this client's position
+
+        Vector3 newPos = new Vector3(float.Parse(splitData[2]),
+            float.Parse(splitData[3]),
+            float.Parse(splitData[4]));
+        //localPlayerList[cnnId].playerObject.transform.position = newPos;
+        puckLastGivenPos = puck.transform.position;
+        puckMostRecentPos = newPos;
+
+        //puckActive = !newStatus; //switch puck physics ownership to other side
+    }
+
+    //PUCK MOVEMENT
+    private void PuckLoop()
+    {
+        if (puckActive == true)
+        {
+            SendPuckData();
+        }
+        else
+        {
+            //ReceivePuckData(); nothing?
+        }
+    }
+
     //Puck functions are experimental
     private void SendPuckData()
     {
@@ -207,8 +277,8 @@ public class Client : MonoBehaviour
         //localPlayerList[cnnId].playerObject.transform.position = newPos;
         puckLastGivenPos = puck.transform.position;
         puckMostRecentPos = newPos;
-
     }
+
     private void LerpPuckPosition()
     {
         if (Vector3.Distance(puck.transform.position, puckMostRecentPos) > 0.1f && serverCnnId != 1)
@@ -218,7 +288,10 @@ public class Client : MonoBehaviour
     }
 
     //
-
+    private void Compress()
+    { 
+        //to do
+    }
 
 
     private void Start()
@@ -286,6 +359,11 @@ public class Client : MonoBehaviour
                                 ReceivePuckData(splitData);
                                 break;
                             }
+                        case "PChangeSide":
+                            {
+                                ReceivePuckSwitch(splitData);
+                                break;
+                            }
                     }
                     break;
                 }
@@ -306,7 +384,7 @@ public class Client : MonoBehaviour
                 }
         }
 
-        
+
 
         //if(pinger.isDone)
         //{
@@ -319,7 +397,9 @@ public class Client : MonoBehaviour
             lastMovementUpdate = Time.time;
             if (isStarted)
                 SendPositionData();
-            SendPuckData();
+            //SendPuckData();
+            CheckPuckStatus();
+            PuckLoop();
         }
         else
         {

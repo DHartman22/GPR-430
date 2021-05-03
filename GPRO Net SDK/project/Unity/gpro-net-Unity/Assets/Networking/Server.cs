@@ -99,6 +99,11 @@ public class Server : MonoBehaviour
                                 Send(msg, channelId, clients, connectionId);
                                 break;
                             }
+                        case "PChangeSide": //is this correct?
+                            {
+                                Send(msg, channelId, clients, connectionId);
+                                break;
+                            }
                     }
                     break;
                 }
