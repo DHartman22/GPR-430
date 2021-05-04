@@ -42,7 +42,7 @@ public class Client : MonoBehaviour
     [SerializeField]
     private int connectionId;
     [SerializeField]
-    private int serverCnnId;
+    public int serverCnnId;
     [SerializeField]
     private float connectionTime;
 
@@ -73,11 +73,13 @@ public class Client : MonoBehaviour
     public Vector3 puckMostRecentPos;
     public Vector3 puckVelocity;
 
-    private bool puckActive;
+    public bool puckActive;
 
     public bool puckTouched;
 
-    public int score;
+    public int p1Score;
+    public int p2Score;
+
 
     public float xRange; //all positions that the puck or player can be on the x axis in both positive and negative directions
     public float zRange; //above but for z axis
@@ -90,7 +92,6 @@ public class Client : MonoBehaviour
     public GameObject predictionSphere;
     public GameObject actualStateCube;
     public Vector3 predictionPos;
-
     // Start is called before the first frame update
     public void Connect()
     {
@@ -120,6 +121,34 @@ public class Client : MonoBehaviour
         
     }
 
+    public void Score(int id)
+    {
+        if(id == 1)
+        {
+            char[] charPos = ("P1".ToCharArray());
+            byte[] charBytes = Encoding.Unicode.GetBytes(charPos);
+            NetworkTransport.Send(hostId, connectionId, unreliableChannel, charBytes, charPos.Length * sizeof(char), out error);
+            p1Score++;
+            GameObject.Find("P1Score").GetComponent<Text>().text = p1Score.ToString();
+        }
+        else if (id == 2)
+        {
+            char[] charPos = ("P2".ToCharArray());
+            byte[] charBytes = Encoding.Unicode.GetBytes(charPos);
+            NetworkTransport.Send(hostId, connectionId, unreliableChannel, charBytes, charPos.Length * sizeof(char), out error);
+            p2Score++;
+            GameObject.Find("P2Score").GetComponent<Text>().text = p2Score.ToString();
+        }
+        else
+        {
+            GameObject.Find("P1Score").GetComponent<Text>().text = p1Score.ToString();
+            GameObject.Find("P2Score").GetComponent<Text>().text = p2Score.ToString();
+
+        }
+
+
+    }
+
     private void SpawnPlayer(int cnnId)
     {
         if(localPlayerMap.ContainsKey(cnnId) == false)
@@ -146,15 +175,16 @@ public class Client : MonoBehaviour
             if (serverCnnId == 1)
             {
                 puckActive = true; //puck in control
-                divider = GameObject.Find("Divider").GetComponent<BoxCollider>();
+
+                //divider = GameObject.Find("Divider").GetComponent<BoxCollider>();
             }
             else
             {
                 puckActive = false; //p1 spawns with puck...
-                divider = GameObject.Find("Divider (1)").GetComponent<BoxCollider>();
+                //divider = GameObject.Find("Divider (1)").GetComponent<BoxCollider>();
             }
             puckTouched = false;
-            score = 0;
+            //score = 0;
 
             Debug.Log("Spawned " + player.playerObject.name);
         }
@@ -271,10 +301,30 @@ public class Client : MonoBehaviour
     {
         //layer 10 has been set to puck layer
 
-        if (puckTouched == true)
+            //SendPuckSwitch();
+        if(puck.transform.position.x <= 0 && serverCnnId == 1)
         {
-            SendPuckSwitch();
-            puckTouched = false;
+            puckActive = true;
+            return;
+        }
+        else
+        {
+            puckActive = false;
+        }
+
+        if(puck.transform.position.x > 0 && serverCnnId == 2)
+        {
+            puckActive = true;
+            return;
+        }
+        else
+        {
+            puckActive = false;
+        }
+
+        if (puckActive == true)
+        {
+            //puckTouched = false;
         }   //puck touched!!
         else
         { 
@@ -282,20 +332,14 @@ public class Client : MonoBehaviour
         }
     }
 
-    private void SendPuckSwitch() //publically called when divider triggers
+    public void SendPuckSwitch() //publically called when divider triggers
     {
-        if (puckActive == true)
-        {
-            //nothing
-        }
-        else 
-        {
+
             bool sendStatus = puckActive; //switch puck physics ownership to our side
             puckActive = true;
             char[] charPos = ("PChangeSide" + "|" + serverCnnId + "|" + puckActive.ToString()).ToCharArray();
             byte[] charBytes = Encoding.Unicode.GetBytes(charPos);
             NetworkTransport.Send(hostId, connectionId, unreliableChannel, charBytes, charPos.Length * sizeof(char), out error); //send
-        }
     }
 
     private void SendPuckVelocity()
@@ -327,7 +371,6 @@ public class Client : MonoBehaviour
         }
     }
 
-    //Puck functions are experimental
     private void SendPuckData() //Z boundaries: [-40, 40], X boundaries: [-50, 50]
     {
         Encoding.Unicode.GetType();
@@ -411,7 +454,7 @@ public class Client : MonoBehaviour
         puckMostRecentPos = newPos;
 
         //Actual puck position arrived, is it close enough to where the prediction has taken the puck?
-        if ((Vector3.Distance(puck.transform.position, puckMostRecentPos) > deadReckonFailDistance || Physics.CheckSphere(predictionPos, 1.5f, 12) == true) && serverCnnId != 1)
+        if ((Vector3.Distance(puck.transform.position, puckMostRecentPos) > deadReckonFailDistance || Physics.CheckSphere(predictionPos, 1.5f, 12) == true) && !puckActive)
         {
             puck.transform.position = puckMostRecentPos;
         }
@@ -423,21 +466,31 @@ public class Client : MonoBehaviour
         //If the prediction is mostly right, keep predicted
         //If not, teleport to correct state then resume
 
-        if(serverCnnId != 1)
+        if(!puckActive)
         {
+            //puck.GetComponent<Rigidbody>().isKinematic = true;
             puck.transform.position = Vector3.Lerp(puck.transform.position, predictionPos, ((Time.time - lastMovementUpdate) / movementUpdateRate) * smoothingSpeed);
             predictionSphere.transform.position = predictionPos;
             actualStateCube.transform.position = puckMostRecentPos;
+        }
+        else
+        {
+            puck.GetComponent<Rigidbody>().isKinematic = false;
+            puckMostRecentPos = puck.transform.position;
+            predictionPos = puckMostRecentPos + (puckVelocity * deadReckonFuturePositionModifier);
+            predictionSphere.transform.position = predictionPos;
+            actualStateCube.transform.position = puckMostRecentPos;
+
         }
 
     }
 
     private void CheckGameStatus()
     {
-        if (score >= 10)
+        if (p1Score >= 10)
         {
             bool gameover = true;
-            char[] charPos = ("GameOver" + "|" + serverCnnId + "|" + score.ToString()).ToCharArray();
+            char[] charPos = ("GameOver" + "|" + serverCnnId + "|" + p1Score.ToString()).ToCharArray();
             byte[] charBytes = Encoding.Unicode.GetBytes(charPos);
             NetworkTransport.Send(hostId, connectionId, unreliableChannel, charBytes, charPos.Length * sizeof(char), out error);
             GameWin();
@@ -457,6 +510,8 @@ public class Client : MonoBehaviour
         int otherScore = int.Parse(splitData[2]);
 
         //end, update canvas
+        Application.Quit();
+
     }
 
     //
@@ -470,7 +525,7 @@ public class Client : MonoBehaviour
     {
         //for(int i = 0; i < MAX_CONNECTION; i++)
         //localPlayerList.Add(null);
-
+        Score(0);
         pinger = new Ping("127.0.0.1");
         xDiscreteValues = (xRange * 2) / compressionAccuracy;
         zDiscreteValues = (zRange * 2) / compressionAccuracy;
@@ -489,6 +544,7 @@ public class Client : MonoBehaviour
             predictionPos = puckMostRecentPos + (puckVelocity * deadReckonFuturePositionModifier);
             if (isStarted)
                 SendPositionData();
+            CheckGameStatus();
             //SendPuckData();
             CheckPuckStatus();
             PuckLoop();
@@ -559,6 +615,18 @@ public class Client : MonoBehaviour
                         case "GameOver":
                             {
                                 GameLose(splitData);
+                                break;
+                            }
+                        case "P1":
+                            {
+                                p1Score++;
+                                Score(0);
+                                break;
+                            }
+                        case "P2":
+                            {
+                                p2Score++;
+                                Score(0);
                                 break;
                             }
                     }

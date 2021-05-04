@@ -38,6 +38,10 @@ public class Server : MonoBehaviour
     [SerializeField]
     public List<ServerClient> clients = new List<ServerClient>();
 
+    public int player1Score;
+    public int player2Score;
+
+
 
     // Start is called before the first frame update
     void Start()
@@ -96,17 +100,29 @@ public class Server : MonoBehaviour
                             }
                         case "PTransform":
                             {
-                                Send(msg, channelId, clients, connectionId);
+                                Send(msg, channelId, clients);
                                 break;
                             }
                         case "PChangeSide": //is this correct?
                             {
-                                Send(msg, channelId, clients, connectionId);
+                                //Send(msg, channelId, clients, connectionId);
                                 break;
                             }
                         case "GameOver": //is this correct?
                             {
                                 Send(msg, channelId, clients, connectionId);
+                                break;
+                            }
+                        case "P1":
+                            {
+                                Send(msg, channelId, clients, connectionId);
+                                player1Score++;
+                                break;
+                            }
+                        case "P2":
+                            {
+                                Send(msg, channelId, clients, connectionId);
+                                player2Score++;
                                 break;
                             }
                     }
