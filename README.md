@@ -13,6 +13,7 @@ and check Scenes/SampleScene. Hit build and run, and select a different location
 
 CONTROLS:
 WASD -> Movement
+-
 Mouse -> Move hammer
 
 Hit the puck into the opponent's goal to score! 10 Points results in a win!
