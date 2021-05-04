@@ -375,6 +375,8 @@ public class Client : MonoBehaviour
 
     private void ReceivePuckData(string[] splitData) //Transform|<cnnId>|<xPos>|<yPos>|<zPos>
     {
+        //Undo all the quantization
+
         float puckVelRange = 250;
         float velocityDiscrete = puckVelRange / compressionAccuracy;
         int cnnId = int.Parse(splitData[1]);
