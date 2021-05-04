@@ -104,6 +104,11 @@ public class Server : MonoBehaviour
                                 Send(msg, channelId, clients, connectionId);
                                 break;
                             }
+                        case "GameOver": //is this correct?
+                            {
+                                Send(msg, channelId, clients, connectionId);
+                                break;
+                            }
                     }
                     break;
                 }
