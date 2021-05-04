@@ -20,7 +20,6 @@ public class Player
     public Vector3 mostRecentPos;
 }
 
-
 public class Client : MonoBehaviour
 {
     //Much of the basic server and client architecture is lifted from this tutorial:
@@ -71,8 +70,11 @@ public class Client : MonoBehaviour
     public Vector3 puckLastGivenPos;
     public Vector3 puckMostRecentPos;
 
-    private BoxCollider divider; //assign on Start?
     private bool puckActive;
+
+    public bool puckTouched;
+
+    public int score;
 
     // Start is called before the first frame update
     public void Connect()
@@ -132,6 +134,8 @@ public class Client : MonoBehaviour
                 puckActive = false; //p1 spawns with puck...
                 divider = GameObject.Find("Divider (1)").GetComponent<BoxCollider>();
             }
+            puckTouched = false;
+            score = 0;
 
             Debug.Log("Spawned " + player.playerObject.name);
         }
@@ -151,7 +155,6 @@ public class Client : MonoBehaviour
         
         Destroy(localPlayerMap[cnnId].playerObject);
         localPlayerMap.Remove(cnnId);
-
     }
 
     private void JoinGame(int cnnId, string[] splitData) //for when the client joins the game
@@ -164,8 +167,6 @@ public class Client : MonoBehaviour
             SpawnPlayer(int.Parse(temp[1]));
         }
         //SpawnPlayer(cnnId);
-           
-        
     }
 
     private void SendPositionData()
@@ -197,21 +198,23 @@ public class Client : MonoBehaviour
             {
                 p.Value.playerObject.transform.GetChild(0).position = Vector3.Lerp(p.Value.lastGivenPos, p.Value.mostRecentPos, ((Time.time - lastMovementUpdate) / movementUpdateRate) * smoothingSpeed);
             }
-
         }
     }
 
     //PUCK OWNERSHIP
     private void CheckPuckStatus()
     {
-        //https://answers.unity.com/questions/986235/is-it-possible-to-check-collision-from-another-obj.html
         //layer 10 has been set to puck layer
 
-        if (true == true) //puck touched!!
+        if (puckTouched == true)
+        {
             SendPuckSwitch();
+            puckTouched = false;
+        }   //puck touched!!
         else
-        { }
+        { 
             //nothing
+        }
     }
 
     private void SendPuckSwitch() //publically called when divider triggers
@@ -224,8 +227,9 @@ public class Client : MonoBehaviour
         {
             bool sendStatus = puckActive; //switch puck physics ownership to our side
             puckActive = true;
-            //turn bool into data
-            //NetworkTransport.Send(hostId, connectionId, unreliableChannel, charBytes, charPos.Length * sizeof(char), out error); //send
+            char[] charPos = ("PChangeSide" + "|" + serverCnnId + "|" + puckActive.ToString()).ToCharArray();
+            byte[] charBytes = Encoding.Unicode.GetBytes(charPos);
+            NetworkTransport.Send(hostId, connectionId, unreliableChannel, charBytes, charPos.Length * sizeof(char), out error); //send
         }
     }
 
@@ -234,14 +238,7 @@ public class Client : MonoBehaviour
         int cnnId = int.Parse(splitData[1]);
         if (cnnId == serverCnnId) { return; } //Dont update this client's position
 
-        Vector3 newPos = new Vector3(float.Parse(splitData[2]),
-            float.Parse(splitData[3]),
-            float.Parse(splitData[4]));
-        //localPlayerList[cnnId].playerObject.transform.position = newPos;
-        puckLastGivenPos = puck.transform.position;
-        puckMostRecentPos = newPos;
-
-        //puckActive = !newStatus; //switch puck physics ownership to other side
+        puckActive = bool.Parse(splitData[2]); //switch puck physics ownership to other side
     }
 
     //PUCK MOVEMENT
@@ -285,6 +282,33 @@ public class Client : MonoBehaviour
         {
             puck.transform.position = Vector3.Lerp(puckLastGivenPos, puckMostRecentPos, ((Time.time - lastMovementUpdate) / movementUpdateRate) * smoothingSpeed);
         }
+    }
+
+    private void CheckGameStatus()
+    {
+        if (score >= 10)
+        {
+            bool gameover = true;
+            char[] charPos = ("GameOver" + "|" + serverCnnId + "|" + score.ToString()).ToCharArray();
+            byte[] charBytes = Encoding.Unicode.GetBytes(charPos);
+            NetworkTransport.Send(hostId, connectionId, unreliableChannel, charBytes, charPos.Length * sizeof(char), out error);
+            GameWin();
+        }
+    }
+
+    private void GameWin()
+    {
+        //end, update canvas
+    }
+
+    private void GameLose(string[] splitData)
+    {
+        int cnnId = int.Parse(splitData[1]);
+        if (cnnId == serverCnnId) { return; } //Dont update this client's position
+
+        int otherScore int.Parse(splitData[2]);
+
+        //end, update canvas
     }
 
     //
@@ -364,6 +388,11 @@ public class Client : MonoBehaviour
                                 ReceivePuckSwitch(splitData);
                                 break;
                             }
+                        case "GameOver":
+                            {
+                                GameLose(splitData);
+                                break;
+                            }
                     }
                     break;
                 }
@@ -398,6 +427,7 @@ public class Client : MonoBehaviour
             if (isStarted)
                 SendPositionData();
             //SendPuckData();
+            CheckGameStatus();
             CheckPuckStatus();
             PuckLoop();
         }
