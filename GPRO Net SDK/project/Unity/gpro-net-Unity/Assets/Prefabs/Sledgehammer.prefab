@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 921654278360858274}
   - component: {fileID: 511345639822915869}
   - component: {fileID: 3278602930657991453}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Head
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -321,7 +321,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4693761400543746246}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Sledgehammer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -356,7 +356,7 @@ GameObject:
   - component: {fileID: 3155910765781302107}
   - component: {fileID: 2545626750888810189}
   - component: {fileID: 2455265544326438779}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Handle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
