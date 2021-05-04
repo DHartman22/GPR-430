@@ -10,3 +10,9 @@ to place the build (we recommend making a dedicated folder on your desktop).
 and check Scenes/SampleScene. Hit build and run, and select a different location for the client build.
 5) Now that the server is running and your client is open, click Activate Server in the client view and click Connect.
 6) Run a second instance of the client build, and hit connect. You are now playing in a two player match!
+
+CONTROLS:
+WASD -> Movement
+Mouse -> Move hammer
+
+Hit the puck into the opponent's goal to score! 10 Points results in a win!
