@@ -140,6 +140,8 @@ public class Server : MonoBehaviour
         GameObject.Find("Text").GetComponent<Text>().text = clientNames;
     }
 
+
+
     private void OnConnection(int cnnId)
     {
         //add to player list

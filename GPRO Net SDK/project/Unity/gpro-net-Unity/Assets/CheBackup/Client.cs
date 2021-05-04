@@ -306,7 +306,7 @@ public class Client : MonoBehaviour
         int cnnId = int.Parse(splitData[1]);
         if (cnnId == serverCnnId) { return; } //Dont update this client's position
 
-        int otherScore int.Parse(splitData[2]);
+        int otherScore = int.Parse(splitData[2]);
 
         //end, update canvas
     }

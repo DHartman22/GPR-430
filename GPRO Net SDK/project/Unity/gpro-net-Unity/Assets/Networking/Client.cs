@@ -18,6 +18,7 @@ public class Player
     public int connectionId;
     public Vector3 lastGivenPos;
     public Vector3 mostRecentPos;
+    public float yRotation;
 }
 
 public class Client : MonoBehaviour
@@ -57,6 +58,7 @@ public class Client : MonoBehaviour
 
     public Ping pinger;
     public float smoothingSpeed;
+    public float serverTime;
 
     public GameObject playerPrefab;
     [SerializeField]
@@ -69,12 +71,25 @@ public class Client : MonoBehaviour
     public GameObject puck;
     public Vector3 puckLastGivenPos;
     public Vector3 puckMostRecentPos;
+    public Vector3 puckVelocity;
 
     private bool puckActive;
 
     public bool puckTouched;
 
     public int score;
+
+    public float xRange; //all positions that the puck or player can be on the x axis in both positive and negative directions
+    public float zRange; //above but for z axis
+    public float compressionAccuracy = 0.1f;
+    public float xDiscreteValues;
+    public float zDiscreteValues;
+    public float deadReckonFailDistance;
+    public float deadReckonFuturePositionModifier;
+
+    public GameObject predictionSphere;
+    public GameObject actualStateCube;
+    public Vector3 predictionPos;
 
     // Start is called before the first frame update
     public void Connect()
@@ -88,7 +103,7 @@ public class Client : MonoBehaviour
         //}
 
         
-
+        
         NetworkTransport.Init();
         ConnectionConfig cc = new ConnectionConfig();
 
@@ -101,6 +116,8 @@ public class Client : MonoBehaviour
         connectionId = NetworkTransport.Connect(hostId, "127.0.0.1", port, 0, out error);
         connectionTime = Time.time;
         isConnected = true;
+        int msRoundTripTime = NetworkTransport.GetCurrentRTT(hostId, connectionId, out error);
+        
     }
 
     private void SpawnPlayer(int cnnId)
@@ -119,6 +136,8 @@ public class Client : MonoBehaviour
                 player.playerObject.transform.GetChild(0).GetComponent<CharacterController>().enabled = true;
                 player.playerObject.transform.GetChild(0).GetComponent<PlayerMovement>().inputAllowed = true;
                 //player.playerObject.transform.GetChild(0).GetComponent<PlayerMovement>().playerCamera.enabled = true;
+                player.playerObject.transform.GetChild(0).GetComponent<MouseLook>().enabled = true;
+
                 isStarted = true;
             }
 
@@ -172,7 +191,32 @@ public class Client : MonoBehaviour
     private void SendPositionData()
     {
         Vector3 pos = localPlayerMap[serverCnnId].playerObject.transform.GetChild(0).position;
-        char[] charPos = ("Transform" + "|" + serverCnnId + "|" + pos.x.ToString("F2") + "|" + pos.y.ToString("F2") + "|" + pos.z.ToString("F2")).ToCharArray();
+        float yRot = localPlayerMap[serverCnnId].playerObject.transform.GetChild(0).rotation.eulerAngles.y;
+        string a = localPlayerMap[serverCnnId].playerObject.transform.GetChild(0).name;
+        //quantize transform
+        float xPos = pos.x;
+        xPos -= (xRange * -1);
+        xPos /= (xRange * 2);
+        xPos *= xDiscreteValues;
+        xPos = Mathf.RoundToInt(xPos);
+
+        
+
+        float zPos = pos.z;
+        zPos -= (zRange * -1);
+        zPos /= (zRange * 2);
+        zPos *= zDiscreteValues;
+        zPos = Mathf.RoundToInt(zPos);
+
+        float yRotDiscrete = 360 / compressionAccuracy;
+        yRot -= 90; //range is -90 to 270 for some reason... this makes it -180 to 180
+
+        yRot -= (-180);
+        yRot /= (360);
+        yRot *= yRotDiscrete;
+        yRot = Mathf.RoundToInt(yRot);
+
+        char[] charPos = ("Transform" + "|" + serverCnnId + "|" + xPos.ToString() + "|"  + zPos.ToString() + "|" + yRot.ToString()).ToCharArray();
         byte[] charBytes = Encoding.Unicode.GetBytes(charPos);
         NetworkTransport.Send(hostId, connectionId, unreliableChannel, charBytes, charPos.Length * sizeof(char), out error);
     }
@@ -182,22 +226,43 @@ public class Client : MonoBehaviour
         int cnnId = int.Parse(splitData[1]);
         if(cnnId == serverCnnId) { return; } //Dont update this client's position
 
-        Vector3 newPos = new Vector3(float.Parse(splitData[2]),
-            float.Parse(splitData[3]),
-            float.Parse(splitData[4]));
-        //localPlayerList[cnnId].playerObject.transform.position = newPos;
-        localPlayerMap[cnnId].lastGivenPos = localPlayerMap[cnnId].playerObject.transform.GetChild(0).position;
-        localPlayerMap[cnnId].mostRecentPos = newPos;
+        float xPos = int.Parse(splitData[2]);
+        xPos /= xDiscreteValues;
+        xPos *= (xRange * 2);
+        xPos += (xRange * -1);
 
+        float zPos = int.Parse(splitData[3]);
+        zPos /= zDiscreteValues;
+        zPos *= (zRange * 2);
+        zPos += (zRange * -1);
+
+        float yRotDiscrete = 360 / compressionAccuracy;
+        float yRot = int.Parse(splitData[4]);
+        yRot /= yRotDiscrete;
+        yRot *= 360;
+        yRot += -180;
+
+        yRot += 90; //back to its original range
+
+        Vector3 newPos = new Vector3(xPos, 6.0f, zPos);
+        localPlayerMap[cnnId].lastGivenPos = localPlayerMap[cnnId].mostRecentPos;
+        localPlayerMap[cnnId].mostRecentPos = newPos;
+        localPlayerMap[cnnId].yRotation = yRot;
     }
     private void LerpPlayerPosition()
     {
         foreach(KeyValuePair<int, Player> p in localPlayerMap)
         {
-            if(Vector3.Distance(p.Value.playerObject.transform.GetChild(0).position, p.Value.mostRecentPos) > 0.1f)
+            if(Vector3.Distance(p.Value.playerObject.transform.GetChild(0).position, p.Value.mostRecentPos) > 0.1f && p.Key != serverCnnId)
             {
                 p.Value.playerObject.transform.GetChild(0).position = Vector3.Lerp(p.Value.lastGivenPos, p.Value.mostRecentPos, ((Time.time - lastMovementUpdate) / movementUpdateRate) * smoothingSpeed);
             }
+
+            if(p.Key != serverCnnId)
+            {
+                p.Value.playerObject.transform.GetChild(0).rotation = Quaternion.Euler(0f, p.Value.yRotation, 0f);
+            }
+
         }
     }
 
@@ -233,6 +298,14 @@ public class Client : MonoBehaviour
         }
     }
 
+    private void SendPuckVelocity()
+    {
+        if(puckActive)
+        {
+
+        }
+    }
+
     private void ReceivePuckSwitch(string[] splitData)
     {
         int cnnId = int.Parse(splitData[1]);
@@ -255,33 +328,106 @@ public class Client : MonoBehaviour
     }
 
     //Puck functions are experimental
-    private void SendPuckData()
+    private void SendPuckData() //Z boundaries: [-40, 40], X boundaries: [-50, 50]
     {
+        Encoding.Unicode.GetType();
+
+        Vector3 vel = puck.GetComponent<Rigidbody>().velocity;
         Vector3 pos = puck.transform.position;
-        char[] charPos = ("PTransform" + "|" + serverCnnId + "|" + pos.x.ToString("F2") + "|" + pos.y.ToString("F2") + "|" + pos.z.ToString("F2")).ToCharArray();
+        float discreteValueX = (xRange * 2) / compressionAccuracy;
+        float discreteValueZ = (zRange * 2) / compressionAccuracy;
+
+        //quantize puck transform
+        float xPos = pos.x;
+        xPos -= (xRange * -1);
+        xPos /= (xRange * 2);
+        xPos *= xDiscreteValues;
+        xPos = Mathf.RoundToInt(xPos);
+
+        float zPos = pos.z;
+        zPos -= (zRange * -1);
+        zPos /= (zRange * 2);
+        zPos *= zDiscreteValues;
+        zPos = Mathf.RoundToInt(zPos);
+
+        puckVelocity = puck.GetComponent<Rigidbody>().velocity;
+
+        float puckVelRange = 250;
+        float velocityDiscrete = puckVelRange / compressionAccuracy;
+
+        float xVel = puckVelocity.x;
+        xVel -= (puckVelRange * -1);
+        xVel /= (puckVelRange * 2);
+        xVel *= velocityDiscrete;
+        xVel = Mathf.RoundToInt(xVel);
+
+        float zVel = puckVelocity.z;
+        zVel -= (puckVelRange * -1);
+        zVel /= (puckVelRange * 2);
+        zVel *= velocityDiscrete;
+        zVel = Mathf.RoundToInt(zVel);
+
+        char[] charPos = ("PTransform" + "|" + serverCnnId + "|" + xPos.ToString() + "|" + zPos.ToString() + "|" + xVel.ToString() + "|" + zVel.ToString()).ToCharArray();
         byte[] charBytes = Encoding.Unicode.GetBytes(charPos);
         NetworkTransport.Send(hostId, connectionId, unreliableChannel, charBytes, charPos.Length * sizeof(char), out error);
     }
 
     private void ReceivePuckData(string[] splitData) //Transform|<cnnId>|<xPos>|<yPos>|<zPos>
     {
+        float puckVelRange = 250;
+        float velocityDiscrete = puckVelRange / compressionAccuracy;
         int cnnId = int.Parse(splitData[1]);
         if (cnnId == serverCnnId) { return; } //Dont update this client's position
 
-        Vector3 newPos = new Vector3(float.Parse(splitData[2]),
-            float.Parse(splitData[3]),
-            float.Parse(splitData[4]));
+        float xPos = int.Parse(splitData[2]);
+        xPos /= xDiscreteValues;
+        xPos *= (xRange * 2);
+        xPos += (xRange * -1);
+
+        float zPos = int.Parse(splitData[3]);
+        zPos /= zDiscreteValues;
+        zPos *= (zRange * 2);
+        zPos += (zRange * -1);
+
+        Vector3 newPos = new Vector3(xPos, 1f, zPos);
+
+        float xVel = int.Parse(splitData[4]);
+        xVel /= velocityDiscrete;
+        xVel *= (puckVelRange * 2);
+        xVel += (puckVelRange * -1);
+
+        float zVel = int.Parse(splitData[5]);
+        zVel /= velocityDiscrete;
+        zVel *= (puckVelRange * 2);
+        zVel += (puckVelRange * -1);
+
+        puckVelocity = new Vector3(xVel, 0f, zVel);
+
         //localPlayerList[cnnId].playerObject.transform.position = newPos;
-        puckLastGivenPos = puck.transform.position;
+        //puck.transform.position = puckLastGivenPos;
+        puckLastGivenPos = puckMostRecentPos;
         puckMostRecentPos = newPos;
+
+        //Actual puck position arrived, is it close enough to where the prediction has taken the puck?
+        if ((Vector3.Distance(puck.transform.position, puckMostRecentPos) > deadReckonFailDistance || Physics.CheckSphere(predictionPos, 1.5f, 12) == true) && serverCnnId != 1)
+        {
+            puck.transform.position = puckMostRecentPos;
+        }
     }
 
     private void LerpPuckPosition()
     {
-        if (Vector3.Distance(puck.transform.position, puckMostRecentPos) > 0.1f && serverCnnId != 1)
+        //Predicts next state
+        //If the prediction is mostly right, keep predicted
+        //If not, teleport to correct state then resume
+
+        if(serverCnnId != 1)
         {
-            puck.transform.position = Vector3.Lerp(puckLastGivenPos, puckMostRecentPos, ((Time.time - lastMovementUpdate) / movementUpdateRate) * smoothingSpeed);
+            puck.transform.position = Vector3.Lerp(puck.transform.position, predictionPos, ((Time.time - lastMovementUpdate) / movementUpdateRate) * smoothingSpeed);
+            predictionSphere.transform.position = predictionPos;
+            actualStateCube.transform.position = puckMostRecentPos;
         }
+
     }
 
     private void CheckGameStatus()
@@ -306,7 +452,7 @@ public class Client : MonoBehaviour
         int cnnId = int.Parse(splitData[1]);
         if (cnnId == serverCnnId) { return; } //Dont update this client's position
 
-        int otherScore int.Parse(splitData[2]);
+        int otherScore = int.Parse(splitData[2]);
 
         //end, update canvas
     }
@@ -324,12 +470,32 @@ public class Client : MonoBehaviour
         //localPlayerList.Add(null);
 
         pinger = new Ping("127.0.0.1");
-
+        xDiscreteValues = (xRange * 2) / compressionAccuracy;
+        zDiscreteValues = (zRange * 2) / compressionAccuracy;
     }
 
     private void Update()
     {
         GameObject.Find("ID").GetComponent<Text>().text = serverCnnId.ToString();
+
+        if (!isConnected)
+            return;
+
+        if (Time.time - lastMovementUpdate > movementUpdateRate)
+        {
+            lastMovementUpdate = Time.time;
+            predictionPos = puckMostRecentPos + (puckVelocity * deadReckonFuturePositionModifier);
+            if (isStarted)
+                SendPositionData();
+            //SendPuckData();
+            CheckPuckStatus();
+            PuckLoop();
+        }
+        else
+        {
+            LerpPlayerPosition();
+            LerpPuckPosition();
+        }
     }
     // Update is called once per frame
     void FixedUpdate()
@@ -354,7 +520,7 @@ public class Client : MonoBehaviour
             case NetworkEventType.DataEvent:
                 {
                     string msg = Encoding.Unicode.GetString(recBuffer, 0, dataSize);
-                    Debug.Log("Receiving : " + msg);
+                    //Debug.Log("Receiving : " + msg);
                     string[] splitData = msg.Split('|');
                     switch(splitData[0]) //Change these to network event types, this is wasting data
                     {
@@ -421,21 +587,8 @@ public class Client : MonoBehaviour
         //    pinger = new Ping(pinger.ip);
         //}
 
-        if (Time.time - lastMovementUpdate > movementUpdateRate)
-        {
-            lastMovementUpdate = Time.time;
-            if (isStarted)
-                SendPositionData();
-            //SendPuckData();
-            CheckGameStatus();
-            CheckPuckStatus();
-            PuckLoop();
-        }
-        else
-        {
-            LerpPlayerPosition();
-            LerpPuckPosition();
-        }
     }
+
+    
 }
 #pragma warning disable CS0618 // Type or member is obsolete
